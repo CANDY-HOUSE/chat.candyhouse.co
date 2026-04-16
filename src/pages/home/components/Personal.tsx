@@ -36,7 +36,7 @@ export const Personal: React.FC = () => {
   }
 
   const goToBiz = () => {
-    window.open(`${BIZ_URL}/settings`, '_blank')
+    window.open(`${BIZ_URL}/biz/settings`, '_blank')
   }
 
   return (

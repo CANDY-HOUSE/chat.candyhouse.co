@@ -1,6 +1,10 @@
 import log from 'loglevel'
 
-log.setLevel('debug')
+if (process.env.NODE_ENV === 'production') {
+  log.setLevel('error')
+} else {
+  log.setLevel('debug')
+}
 
 export const logger = {
   trace: (...args: unknown[]): void => {
