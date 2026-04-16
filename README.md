@@ -2,7 +2,6 @@
 💡💡💡💡💡💡💡💡💡💡💡💡💡
 
 # 项目结构
-     ├── .github/workflows/       # GitHub Actions 工作流配置目录 | GitHub Actions configuration
      ├── public/                  # 静态资源文件目录 | Static resources
      └── src/                     # 源代码目录 | Source code
          ├── api/                 # API 相关代码 | API related code
@@ -16,7 +15,6 @@
          ├── i18n/                # 国际化 | Internationalization
          ├── pages/               # 页面组件 | Page components
          ├── router/              # 路由配置 | Router configuration
-         ├── services/            # ai service
          ├── store/               # 状态管理 | State management
          ├── styles/              # 全局样式
          ├── types/               # TypeScript 类型定义 | TypeScript definitions
@@ -28,8 +26,7 @@
 
 
 # 根目录文件 | Root files
-    ├── .env.dev             # 开发环境配置 | Development environment config
-    ├── .env.prod            # 生产环境配置 | Production environment config
+    ├── .env.development     # 开发环境配置 | Development environment config
     ├── .gitignore           # Git忽略文件配置 | Git ignore configuration
     ├── craco.config.js      # Craco配置文件
     ├── eslint.config.js     # ESLint配置文件 | ESLint configuration
@@ -48,10 +45,7 @@
 npm i
 
 # 开发环境启动
-npm run start    # 使用 .env.dev 配置启动项目
-
-# 生产环境启动
-npm run prod      # 使用 .env.prod 配置启动项目
+npm run start
 
 # 项目构建
 npm run build      # 构建生产环境代码
