@@ -1,0 +1,95 @@
+.lang-ja {
+  font-family: 'Noto Sans CJK JP', 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+}
+.lang-zh {
+  font-family: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+.lang-zhTw {
+  font-family: 'Noto Sans CJK TC', 'Heiti TC', sans-serif;
+}
+.lang-en {
+  font-family: 'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+}
+
+*:focus-visible {
+  outline: none;
+}
+
+.img-perfect-fit {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+  cursor: pointer;
+}
+.img-parent {
+  background-color: var(--grey-50, #fafafa);
+  border-radius: 8px;
+  max-width: 400px;
+  aspect-ratio: 1/1;
+  overflow: hidden;
+  position: relative;
+  margin: 0.2rem 0;
+}
+
+.video-perfect-fit {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  cursor: pointer;
+}
+.video-parent {
+  border-radius: 8px;
+  max-width: 400px;
+  aspect-ratio: 720/1280;
+  overflow: hidden;
+  position: relative;
+  margin: 0.2rem 0;
+}
+
+.none-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (pointer: fine) {
+  .global-scrollbar {
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+  }
+
+  .global-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .global-scrollbar::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  .global-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+
+  .global-scrollbar:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
+  }
+
+  .global-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+}
+
+@supports (scrollbar-gutter: stable) {
+  .global-scrollbar {
+    scrollbar-gutter: stable;
+  }
+}
