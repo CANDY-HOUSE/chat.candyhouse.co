@@ -24,6 +24,7 @@ const LoginPage: React.FC = () => {
 
   const handleEmailSubmit = (event: FormEvent) => {
     event.preventDefault()
+
     apiLogin(email).then((data) => {
       if (data.isOk) {
         setUserData(data.data)

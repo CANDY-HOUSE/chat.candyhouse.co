@@ -50,7 +50,7 @@ export const apiLogin = withLoading(async (email: string) => {
       if (e.name === 'NotAuthorizedException') {
         await Auth.signUp({
           username: email,
-          password: '',
+          password: 'TempPass123!',
           attributes: {
             email: email
           }
