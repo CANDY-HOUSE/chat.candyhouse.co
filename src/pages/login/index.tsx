@@ -76,12 +76,11 @@ const LoginPage: React.FC = () => {
           src={icons.candyhouseLogo}
           alt="logo"
           style={{
-            maxHeight: '8rem',
-            width: 'auto',
-            marginTop: '20vh',
-            marginBottom: '2rem',
+            display: 'block',
+            maxHeight: '100px',
             maxWidth: '100%',
-            objectFit: 'contain'
+            marginTop: '26vh',
+            marginBottom: '2rem'
           }}
         />
 
@@ -213,7 +212,7 @@ const LoginPage: React.FC = () => {
         </Stack>
       </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
         <img
           alt="icon"
           style={{ width: isMobile ? '46%' : '36%' }}
