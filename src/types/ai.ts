@@ -9,6 +9,7 @@ export interface UnifiedResponse<V = string, C = unknown> {
   done: boolean
   thoughtValue?: string
   finishReason?: string
+  responseId?: string
   usage?: {
     inputTokens?: number // 用户输入的 Token 数量（包含系统提示词、对话历史等）
     outputTokens?: number // 模型生成的 Token 数量

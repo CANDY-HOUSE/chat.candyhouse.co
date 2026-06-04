@@ -419,17 +419,17 @@ export const useAi = () => {
     const filteMessages = messages.findLast((item) => item.role === 'user')!
 
     // 历史上下文管理
-    let pId: string | null = null
+    let pId: string | undefined
     const msgIndex = conv?.messages.findIndex((msg) => msg.clientId === message.clientId) || -1
     if (msgIndex > 1) {
-      pId =
-        conv?.messages.slice(0, msgIndex).findLast((msg) => !!msg.previousResponseId)
-          ?.previousResponseId || null
+      pId = conv?.messages
+        .slice(0, msgIndex)
+        .findLast((msg) => !!msg.previousResponseId)?.previousResponseId
     }
 
     // 构建运行时参数（特殊处理的字段）
     const runtimeParams: Record<string, unknown> = {
-      previous_response_id: pId
+      previousResponseId: pId
     }
 
     // 使用通用函数构建最终参数
@@ -467,7 +467,7 @@ export const useAi = () => {
       }
 
       // 更新状态
-      let previousResponseId = (data.extra?.responseId || '') as string
+      let previousResponseId = (data.responseId || data.extra?.responseId || '') as string
       chatStatus = data.done ? MessageState.finish : MessageState.start
       modelThought += data.thoughtValue ?? ''
 
