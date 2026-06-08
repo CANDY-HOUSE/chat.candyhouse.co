@@ -38,14 +38,22 @@ export const useAi = () => {
    * @param topicId 主题id
    * @returns 是否已中止
    */
-  const checkAbortAndPushFinal = (
-    conversationId: string,
-    message: IMessage,
-    abortController: AbortController,
-    modelRes: string | ContentBlock[],
-    modelThought?: string,
+  const checkAbortAndPushFinal = (params: {
+    conversationId: string
+    message: IMessage
+    abortController: AbortController
+    modelRes: string | ContentBlock[]
+    modelThought?: string
     topicId?: string
-  ): boolean => {
+  }): boolean => {
+    const {
+      conversationId,
+      message,
+      abortController,
+      modelRes,
+      modelThought = '',
+      topicId
+    } = params
     if (abortController.signal.aborted) return true
 
     const modelInfoRealTime = getAttrValue(conversationId, 'modelInfo', topicId)
@@ -92,14 +100,18 @@ export const useAi = () => {
    * 处理流式响应的数据块
    */
   const processStreamValue = async (
-    value: StreamValue,
+    data: UnifiedResponse<StreamValue>,
     modelRes: ContentBlock[],
-    message: IMessage,
-    options?: { aspectRatio?: string }
+    message: IMessage
   ) => {
+    const { value, thoughtSignature } = data
+    const options: Partial<Omit<ContentBlock, 'type' | 'content'>> = {
+      ...(thoughtSignature && { thoughtSignature })
+    }
+
     // 处理字符串类型（纯文本）
     if (typeof value === 'string' && value.length > 0) {
-      const textBlock = chat.createContentBlock(value, 'text')
+      const textBlock = chat.createContentBlock(value, 'text', options)
       modelRes.push(textBlock)
       return
     }
@@ -121,7 +133,8 @@ export const useAi = () => {
                   image: item.url
                 }
               },
-              item.name
+              item.name,
+              options
             )
             modelRes.push(imgBlock)
             break
@@ -129,24 +142,12 @@ export const useAi = () => {
 
           case 'video': {
             const { progress, url } = item
-            const { aspectRatio = '16/9' } = options || {}
 
             // 清空之前的内容，只保留最新的视频状态
             modelRes.length = 0
 
-            if (progress < 100) {
-              modelRes.push({
-                type: 'video',
-                content: `<video src="" data-progress="${progress}" data-aspect-ratio="${aspectRatio}"></video>`,
-                url: ''
-              })
-            } else {
-              modelRes.push({
-                type: 'video',
-                content: `<video src="${url}" data-md-allow="video" controls autoPlay loop data-progress="${progress}" data-aspect-ratio="${aspectRatio}"></video>`,
-                url
-              })
-            }
+            const videoBlock = chat.createVideoBlock(url, progress, options)
+            modelRes.push(videoBlock)
             break
           }
         }
@@ -261,7 +262,7 @@ export const useAi = () => {
       conversationId: string,
       message: IMessage,
       extra: {
-        content: string | ContentBlock[]
+        content: string | ContentBlock[] // 模型回答内容
         status: number // 0: load 1: finish -1: start -2: err
         thoughtValue?: string
         previousResponseId?: string
@@ -374,7 +375,7 @@ export const useAi = () => {
         throw new Error(data.error as string)
       }
 
-      if (checkAbortAndPushFinal(conversationId, message, abortController, modelRes, '', topicId)) {
+      if (checkAbortAndPushFinal({ conversationId, message, abortController, modelRes, topicId })) {
         return
       }
 
@@ -382,7 +383,7 @@ export const useAi = () => {
       chatStatus = data.done ? MessageState.finish : MessageState.start
 
       // 处理响应数据
-      await processStreamValue(data.value, modelRes, message)
+      await processStreamValue(data, modelRes, message)
 
       if (modelRes.length === 0) return
 
@@ -454,25 +455,25 @@ export const useAi = () => {
 
       // 处理中止
       if (
-        checkAbortAndPushFinal(
+        checkAbortAndPushFinal({
           conversationId,
           message,
           abortController,
           modelRes,
           modelThought,
           topicId
-        )
+        })
       ) {
         return
       }
 
       // 更新状态
-      let previousResponseId = (data.responseId || data.extra?.responseId || '') as string
+      let previousResponseId = (data.responseId || '') as string
       chatStatus = data.done ? MessageState.finish : MessageState.start
       modelThought += data.thoughtValue ?? ''
 
       // 处理响应数据
-      await processStreamValue(data.value, modelRes, message)
+      await processStreamValue(data, modelRes, message)
 
       if (modelRes.length === 0) return
 
@@ -530,14 +531,14 @@ export const useAi = () => {
       }
 
       if (
-        checkAbortAndPushFinal(
+        checkAbortAndPushFinal({
           conversationId,
           message,
           abortController,
           modelRes,
           modelThought,
           topicId
-        )
+        })
       ) {
         return
       }
@@ -547,7 +548,7 @@ export const useAi = () => {
       modelThought += data.thoughtValue ?? ''
 
       // 处理响应数据
-      await processStreamValue(data.value, modelRes, message)
+      await processStreamValue(data, modelRes, message)
 
       if (modelRes.length === 0) return
 
@@ -636,7 +637,7 @@ export const useAi = () => {
       options?: Partial<{ sendType: SendType; topicId: string }>
     ) => {
       const { sendType = SendType.normal, topicId } = options || {}
-      const toBeSendMsg = chat.createTplMsg(message.model, 'assistant', sendType) // 待发送消息模版
+      const toBeSendMsg = chat.createTplMsg(message.model, 'assistant', sendType) // 待发送给模型的消息
 
       if (sendType === SendType.refresh) {
         if (message.role === 'assistant') {

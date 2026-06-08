@@ -90,7 +90,26 @@ const createContentBlock = (
   }
 }
 
-const createImgBlock = async (deltaOp: Op, fileName?: string): Promise<ContentBlock> => {
+const createVideoBlock = (
+  url: string,
+  progress: number,
+  options?: Partial<Omit<ContentBlock, 'type' | 'content'>>
+): ContentBlock => {
+  const aspectRatio = '16/9'
+
+  return {
+    type: 'video',
+    content: `<video src="${url}" data-md-allow="video" controls autoPlay loop data-progress="${progress}" data-aspect-ratio="${aspectRatio}"></video>`,
+    url,
+    ...options
+  }
+}
+
+const createImgBlock = async (
+  deltaOp: Op,
+  fileName?: string,
+  options?: Partial<Omit<ContentBlock, 'type' | 'content'>>
+): Promise<ContentBlock> => {
   fileName = fileName || `image_${Date.now()}.png`
 
   const type = 'image' as const
@@ -101,7 +120,8 @@ const createImgBlock = async (deltaOp: Op, fileName?: string): Promise<ContentBl
     type,
     content: '',
     fileKey: utils.generateFileKey(type),
-    deltaOp
+    deltaOp,
+    ...options
   }
 
   if (base64) {
@@ -116,7 +136,10 @@ const createImgBlock = async (deltaOp: Op, fileName?: string): Promise<ContentBl
   return block
 }
 
-const createFileBlock = async (deltaOp: Op): Promise<ContentBlock> => {
+const createFileBlock = async (
+  deltaOp: Op,
+  options?: Partial<Omit<ContentBlock, 'type' | 'content'>>
+): Promise<ContentBlock> => {
   const insert = deltaOp.insert as unknown as QuillFileInsert
   const fileKey = insert.quillFile!.file
   const name = insert.quillFile!.name
@@ -130,7 +153,8 @@ const createFileBlock = async (deltaOp: Op): Promise<ContentBlock> => {
     file,
     fileKey,
     fileName: file.name,
-    deltaOp
+    deltaOp,
+    ...options
   }
 }
 
@@ -239,6 +263,7 @@ export const chat = {
   downloadJsonFile,
 
   createContentBlock,
+  createVideoBlock,
   createImgBlock,
   createFileBlock,
   createTplMsg,

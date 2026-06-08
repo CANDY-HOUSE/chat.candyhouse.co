@@ -32,7 +32,7 @@ export const useMessage = () => {
         if (msg.cacheControl) ret.cacheControl = true
 
         // 将 ContentBlock 转换成 UnifiedInput
-        for (const { type, content, url, fileName, fileKey } of msg.content!) {
+        for (const { type, content, url, fileName, fileKey, thoughtSignature } of msg.content!) {
           let c_ret: any = {
             type: 'text',
             text: `Unsupported content type: ${type}`
@@ -42,14 +42,16 @@ export const useMessage = () => {
             case 'text':
               c_ret = {
                 type: 'text',
-                text: content || ''
+                text: content || '',
+                ...(thoughtSignature && { thoughtSignature })
               }
               break
             case 'image':
               c_ret = {
                 type: 'image_url',
                 image_url: { url: url || '' },
-                file_id: fileKey
+                file_id: fileKey,
+                ...(thoughtSignature && { thoughtSignature })
               }
               break
             case 'file':
@@ -59,7 +61,8 @@ export const useMessage = () => {
                   file_data: url,
                   filename: fileName,
                   file_id: fileKey
-                }
+                },
+                ...(thoughtSignature && { thoughtSignature })
               }
               break
           }

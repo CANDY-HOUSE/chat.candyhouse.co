@@ -2,10 +2,9 @@
 export type ModelProvider = 'OpenAI' | 'Anthropic' | 'Google' | 'Deepseek' | 'xAI'
 
 // 统一的响应格式
-export interface UnifiedResponse<V = string, C = unknown> {
+export interface UnifiedResponse<V = string> {
   model: string
   value: V
-  chunk: C
   done: boolean
   thoughtValue?: string
   finishReason?: string
@@ -17,7 +16,12 @@ export interface UnifiedResponse<V = string, C = unknown> {
     cachedTokens?: number // 缓存的 Token 数量
     reasoningTokens?: number // 推理的 Token 数量
   }
-  extra?: Record<string, unknown>
+  sources?: {
+    url: string
+    title?: string
+    providerMetadata?: Record<string, unknown>
+  }[]
+  thoughtSignature?: string // chunk 对应的 part 真签名。仅 Gemini 3 text/reasoning block 会出现；
   error?: string
 }
 

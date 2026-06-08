@@ -22,7 +22,7 @@ export interface IModelInfo extends IModel {
 }
 
 export interface ContentBlock {
-  type: 'text' | 'image' | 'file' | 'voice' | 'error' | 'files' | 'video'
+  type: 'text' | 'image' | 'audio' | 'video' | 'file' | 'tool-call' | 'tool-result' | 'error'
   content: string
 
   file?: File
@@ -31,6 +31,7 @@ export interface ContentBlock {
   url?: string
   deltaOp?: Op
   temporary?: boolean // 是否为临时占位消息
+  thoughtSignature?: string // content 对应的 part 真签名。仅 Gemini 3 text/reasoning block 会出现；
 }
 
 export interface IMessage {
