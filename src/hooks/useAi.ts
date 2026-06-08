@@ -211,7 +211,7 @@ export const useAi = () => {
    * 根据模型能力选择合适的处理策略
    */
   const selectModalityStrategy = (model: string): ModalityStrategy => {
-    // 优先级：Video > Response API > Chat Completion/Image
+    // 优先级：Video > Image > Response API > Chat Completion
     if (ai.supportsVideoGeneration(model)) {
       return {
         execute: async (ctx) => {
@@ -223,9 +223,18 @@ export const useAi = () => {
           })
         }
       }
-    }
-
-    if (ai.supportsResponseAPI(model)) {
+    } else if (ai.supportsImageGeneration(model)) {
+      return {
+        execute: async (ctx) => {
+          await handleImageGeneration(ctx.conversationId, {
+            message: ctx.message,
+            modelInfo: ctx.modelInfo,
+            basedId: ctx.basedId,
+            topicId: ctx.topicId
+          })
+        }
+      }
+    } else if (ai.supportsResponseAPI(model)) {
       return {
         execute: async (ctx) => {
           await handleResponseApi(ctx.conversationId, {
@@ -352,13 +361,83 @@ export const useAi = () => {
 
     if (inputReferenceKey) {
       switch (modelProvider) {
-        case 'OpenAI':
-          runtimeParams.input_reference = inputReferenceKey
-          break
         case 'Google':
           runtimeParams.image = { imageBytes: inputReferenceKey }
           break
       }
+    }
+
+    // 使用通用函数构建最终参数
+    const providerParams = buildProviderParams(modelProvider, modelInfo.jsonConfig, runtimeParams)
+
+    const options = {
+      prompt,
+      providerParams,
+      email: user?.email
+    }
+
+    await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
+      if (data.error) {
+        throw new Error(data.error as string)
+      }
+
+      if (checkAbortAndPushFinal({ conversationId, message, abortController, modelRes, topicId })) {
+        return
+      }
+
+      // 更新状态
+      chatStatus = data.done ? MessageState.finish : MessageState.start
+
+      // 处理响应数据
+      await processStreamValue(data, modelRes, message)
+
+      if (modelRes.length === 0) return
+
+      handlePushMessage(conversationId, message, {
+        content: [...modelRes],
+        status: chatStatus,
+        topicId
+      })
+    })
+  }
+
+  /**
+   * 处理生成图片
+   * @param conversationId 会话id
+   * @param extra { prompt: 关于对图片内容的描述 message: 待发送消息 modelInfo: 模型配置 basedId: 基于的消息id topicId?: 主题id }
+   */
+  const handleImageGeneration = async (
+    conversationId: string,
+    extra: { message: IMessage; modelInfo: IModelInfo; basedId: string; topicId?: string }
+  ) => {
+    const { message, modelInfo, topicId, basedId } = extra
+    let chatStatus = MessageState.loading
+    let modelRes: ContentBlock[] = []
+    const abortController = new AbortController()
+    const model = getModelName(modelInfo.modelName)
+    const modelProvider = ai.getModelProvider(model)
+    const conv = getConversation(conversationId, topicId)
+    const baseMsg = conv?.messages.find((msg) => msg.clientId === basedId)
+
+    let prompt = ''
+    const imageUrls: string[] = []
+
+    // 从用户输入中提取 prompt 和图片
+    if (baseMsg) {
+      for (const block of baseMsg.content) {
+        if (block.type === 'text') {
+          prompt += block.content
+        } else if (block.type === 'image') {
+          imageUrls.push(block.url!)
+        }
+      }
+    }
+
+    // 构建运行时参数（特殊处理的字段）
+    const runtimeParams: Record<string, unknown> = {}
+
+    if (imageUrls.length > 0) {
+      runtimeParams.image_urls = imageUrls
     }
 
     // 使用通用函数构建最终参数

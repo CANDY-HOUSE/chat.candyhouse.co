@@ -27,10 +27,10 @@ const supportsVideoGeneration = (modelName: string): boolean => {
   const modelProvider = getModelProvider(modelName)
 
   switch (modelProvider) {
-    case 'OpenAI':
-      return modelName.startsWith('sora')
     case 'Google':
       return modelName.startsWith('veo')
+    case 'xAI':
+      return modelName.startsWith('grok-imagine-video')
     default:
       return false
   }
@@ -40,10 +40,8 @@ const supportsImageGeneration = (modelName: string): boolean => {
   const modelProvider = getModelProvider(modelName)
 
   switch (modelProvider) {
-    case 'OpenAI':
-      return modelName.startsWith('gpt-5')
-    case 'Google':
-      return modelName.includes('image')
+    case 'xAI':
+      return modelName.startsWith('grok-imagine-image')
     default:
       return false
   }
