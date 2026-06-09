@@ -19,9 +19,17 @@ interface Props {
   conversationId: string
   message: IMessage
   anchorRef: React.RefObject<HTMLElement | null>
+  isLastMessage?: boolean
+  onLoadMore?: (conversationId: string, nextToken?: string, isRefresh?: boolean) => Promise<void>
 }
 
-const MessageActions: React.FC<Props> = ({ message, conversationId, anchorRef }) => {
+const MessageActions: React.FC<Props> = ({
+  message,
+  conversationId,
+  anchorRef,
+  isLastMessage = false,
+  onLoadMore
+}) => {
   const { t } = useTranslation()
   const refreshRef = useRef<HTMLElement>(null)
   const editRef = useRef<HTMLElement>(null)
@@ -67,7 +75,14 @@ const MessageActions: React.FC<Props> = ({ message, conversationId, anchorRef })
     utils.copyRichText(anchorRef)
   })
 
-  useUnifiedPress(deleteRef, () => deleteMessage(conversationId, message.messageId || ''))
+  useUnifiedPress(deleteRef, async () => {
+    if (!message.messageId) return
+    await deleteMessage(conversationId, message.messageId)
+
+    if (isLastMessage && onLoadMore) {
+      await onLoadMore(conversationId, '', true)
+    }
+  })
 
   useEffect(() => {
     refreshRef.current = null

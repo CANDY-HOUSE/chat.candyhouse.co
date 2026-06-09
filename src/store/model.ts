@@ -1,7 +1,8 @@
 import type { IConversation, IModel, ITopics } from '@/types/messagetypes'
 import { ModelStatus } from '@constants'
 import { atom, type PrimitiveAtom } from 'jotai'
-import { atomFamily, splitAtom } from 'jotai/utils'
+import { atomFamily } from 'jotai-family'
+import { splitAtom } from 'jotai/utils'
 import { store } from './index'
 
 // 话题列表

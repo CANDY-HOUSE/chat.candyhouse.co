@@ -21,6 +21,12 @@ interface Props {
   swiperRef?: React.RefObject<SwiperRef | null>
 }
 
+type LoadMoreHandler = (
+  conversationId: string,
+  nextToken?: string,
+  isRefresh?: boolean
+) => Promise<void>
+
 const customStyle = {
   container: {
     position: 'relative',
@@ -172,6 +178,16 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
       }
     },
     [focusMessage, setFocusMessage, updateAttrsValue]
+  )
+
+  const handleLoadMore: LoadMoreHandler = useCallback(
+    async (conversationId, nextToken, isRefresh) => {
+      if (isLoadingRef.current) return
+      isLoadingRef.current = true
+      await loadMore(conversationId, nextToken, isRefresh)
+      afterLoadMoreUpdateSwiper()
+    },
+    [afterLoadMoreUpdateSwiper, loadMore]
   )
 
   const handleScroll = useMemo(
@@ -413,7 +429,12 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
                   marginTop: index === 0 ? '2.6rem' : 0
                 }}
               >
-                <MessageItem conversationId={conversation.conversationId} message={message} />
+                <MessageItem
+                  conversationId={conversation.conversationId}
+                  message={message}
+                  isLastMessage={conversation.messages.length === 1}
+                  onLoadMore={handleLoadMore}
+                />
               </div>
             ))}
           </div>

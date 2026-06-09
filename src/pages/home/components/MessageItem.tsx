@@ -21,9 +21,11 @@ import MessageActions from './MessageActions'
 interface Props {
   message: IMessage
   conversationId: string
+  isLastMessage: boolean
+  onLoadMore: (conversationId: string, nextToken?: string, isRefresh?: boolean) => Promise<void>
 }
 
-const MessageItem: React.FC<Props> = ({ message, conversationId }) => {
+const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, onLoadMore }) => {
   const user = useAtomValue(userAtom)
   const workingModels = useAtomValue(workingModelsAtom)
   const { t } = useTranslation()
@@ -109,7 +111,11 @@ const MessageItem: React.FC<Props> = ({ message, conversationId }) => {
         )
       case state === MessageState.error:
         return (
-          <Typography variant="body1" color="error" sx={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+          <Typography
+            variant="body1"
+            color="error"
+            sx={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+          >
             {content && content.length > 0 ? content[0]?.content : t('noAvailableInformation')}
           </Typography>
         )
@@ -233,6 +239,8 @@ const MessageItem: React.FC<Props> = ({ message, conversationId }) => {
           anchorRef={contentRef}
           message={message}
           conversationId={conversationId || ''}
+          isLastMessage={isLastMessage}
+          onLoadMore={onLoadMore}
         />
       </Box>
     </Box>

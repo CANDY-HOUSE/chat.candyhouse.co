@@ -7,6 +7,7 @@ interface UseUnifiedPressOptions {
   capture?: boolean // 捕获阶段
 }
 
+// 统一处理鼠标和触摸事件的 Hook，适用于需要兼容触摸设备的场景
 export function useUnifiedPress(
   ref: React.RefObject<HTMLElement | null>,
   handler: (e: Event) => void,
