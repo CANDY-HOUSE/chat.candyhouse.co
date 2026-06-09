@@ -25,8 +25,7 @@ export const useAi = () => {
   const user = useAtomValue(userAtom)
 
   const { toAiRequest } = useMessage()
-  const { getConversation, pushMessage, getAttrValue, updateModelInfo, updateMessage } =
-    useConversation()
+  const { pushMessage, getAttrValue, updateModelInfo, updateMessage } = useConversation()
   const { getModelName } = useModel()
 
   /** 检查用户是否主动中止回答
@@ -189,78 +188,6 @@ export const useAi = () => {
   }
 
   /**
-   * 多模态处理策略的上下文参数
-   */
-  interface ModalityContext {
-    conversationId: string
-    message: IMessage
-    messages: UnifiedInput[]
-    modelInfo: IModelInfo
-    basedId: string
-    topicId?: string
-  }
-
-  /**
-   * 多模态处理策略接口
-   */
-  interface ModalityStrategy {
-    execute(context: ModalityContext): Promise<void>
-  }
-
-  /**
-   * 根据模型能力选择合适的处理策略
-   */
-  const selectModalityStrategy = (model: string): ModalityStrategy => {
-    // 优先级：Video > Image > Response API > Chat Completion
-    if (ai.supportsVideoGeneration(model)) {
-      return {
-        execute: async (ctx) => {
-          await handleVideoGeneration(ctx.conversationId, {
-            message: ctx.message,
-            modelInfo: ctx.modelInfo,
-            basedId: ctx.basedId,
-            topicId: ctx.topicId
-          })
-        }
-      }
-    } else if (ai.supportsImageGeneration(model)) {
-      return {
-        execute: async (ctx) => {
-          await handleImageGeneration(ctx.conversationId, {
-            message: ctx.message,
-            modelInfo: ctx.modelInfo,
-            basedId: ctx.basedId,
-            topicId: ctx.topicId
-          })
-        }
-      }
-    } else if (ai.supportsResponseAPI(model)) {
-      return {
-        execute: async (ctx) => {
-          await handleResponseApi(ctx.conversationId, {
-            messages: ctx.messages,
-            message: ctx.message,
-            modelInfo: ctx.modelInfo,
-            topicId: ctx.topicId
-          })
-        }
-      }
-    }
-
-    // 默认使用 Chat Completion
-    return {
-      execute: async (ctx) => {
-        await handleChatCompletion(ctx.conversationId, {
-          messages: ctx.messages,
-          message: ctx.message,
-          modelInfo: ctx.modelInfo,
-          topicId: ctx.topicId
-        })
-      }
-    }
-  }
-
-  /**
    * 模型回答处理
    * @param conversationId 会话id
    * @param message 待发送消息
@@ -319,255 +246,6 @@ export const useAi = () => {
   )
 
   /**
-   * 处理生成视频
-   * @param conversationId 会话id
-   * @param extra { prompt: 关于对视频内容的描述 message: 待发送消息 modelInfo: 模型配置 basedId: 基于的消息id topicId?: 主题id }
-   */
-  const handleVideoGeneration = async (
-    conversationId: string,
-    extra: {
-      message: IMessage
-      modelInfo: IModelInfo
-      basedId: string
-      topicId?: string
-    }
-  ) => {
-    const { message, modelInfo, topicId, basedId } = extra
-    let chatStatus = MessageState.loading
-    let modelRes: ContentBlock[] = []
-    const abortController = new AbortController()
-    const model = getModelName(modelInfo.modelName)
-    const modelProvider = ai.getModelProvider(model)
-    const conv = getConversation(conversationId, topicId)
-    const baseMsg = conv?.messages.find((msg) => msg.clientId === basedId)
-
-    let prompt = ''
-    let inputReferenceKey: string | undefined
-
-    // 从用户输入中提取 prompt 和图片
-    if (baseMsg) {
-      for (const block of baseMsg.content) {
-        if (block.type === 'text') {
-          prompt += block.content
-        } else if (block.type === 'image') {
-          if (!block.url) continue
-          inputReferenceKey = block.url.replace(chat.fileUrlFactory(''), '')
-        }
-      }
-    }
-
-    // 构建运行时参数（特殊处理的字段）
-    const runtimeParams: Record<string, unknown> = {}
-
-    if (inputReferenceKey) {
-      switch (modelProvider) {
-        case 'Google':
-          runtimeParams.image = { imageBytes: inputReferenceKey }
-          break
-      }
-    }
-
-    // 使用通用函数构建最终参数
-    const providerParams = buildProviderParams(modelProvider, modelInfo.jsonConfig, runtimeParams)
-
-    const options = {
-      prompt,
-      providerParams,
-      email: user?.email
-    }
-
-    await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
-      if (data.error) {
-        throw new Error(data.error as string)
-      }
-
-      if (checkAbortAndPushFinal({ conversationId, message, abortController, modelRes, topicId })) {
-        return
-      }
-
-      // 更新状态
-      chatStatus = data.done ? MessageState.finish : MessageState.start
-
-      // 处理响应数据
-      await processStreamValue(data, modelRes, message)
-
-      if (modelRes.length === 0) return
-
-      handlePushMessage(conversationId, message, {
-        content: [...modelRes],
-        status: chatStatus,
-        topicId
-      })
-    })
-  }
-
-  /**
-   * 处理生成图片
-   * @param conversationId 会话id
-   * @param extra { prompt: 关于对图片内容的描述 message: 待发送消息 modelInfo: 模型配置 basedId: 基于的消息id topicId?: 主题id }
-   */
-  const handleImageGeneration = async (
-    conversationId: string,
-    extra: { message: IMessage; modelInfo: IModelInfo; basedId: string; topicId?: string }
-  ) => {
-    const { message, modelInfo, topicId, basedId } = extra
-    let chatStatus = MessageState.loading
-    let modelRes: ContentBlock[] = []
-    const abortController = new AbortController()
-    const model = getModelName(modelInfo.modelName)
-    const modelProvider = ai.getModelProvider(model)
-    const conv = getConversation(conversationId, topicId)
-    const baseMsg = conv?.messages.find((msg) => msg.clientId === basedId)
-
-    let prompt = ''
-    const imageUrls: string[] = []
-
-    // 从用户输入中提取 prompt 和图片
-    if (baseMsg) {
-      for (const block of baseMsg.content) {
-        if (block.type === 'text') {
-          prompt += block.content
-        } else if (block.type === 'image') {
-          imageUrls.push(block.url!)
-        }
-      }
-    }
-
-    // 构建运行时参数（特殊处理的字段）
-    const runtimeParams: Record<string, unknown> = {}
-
-    if (imageUrls.length > 0) {
-      runtimeParams.image_urls = imageUrls
-    }
-
-    // 使用通用函数构建最终参数
-    const providerParams = buildProviderParams(modelProvider, modelInfo.jsonConfig, runtimeParams)
-
-    const options = {
-      prompt,
-      providerParams,
-      email: user?.email
-    }
-
-    await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
-      if (data.error) {
-        throw new Error(data.error as string)
-      }
-
-      if (checkAbortAndPushFinal({ conversationId, message, abortController, modelRes, topicId })) {
-        return
-      }
-
-      // 更新状态
-      chatStatus = data.done ? MessageState.finish : MessageState.start
-
-      // 处理响应数据
-      await processStreamValue(data, modelRes, message)
-
-      if (modelRes.length === 0) return
-
-      handlePushMessage(conversationId, message, {
-        content: [...modelRes],
-        status: chatStatus,
-        topicId
-      })
-    })
-  }
-
-  /**
-   * response api 请求
-   * @param conversationId 会话id
-   * @param extra { messages: 转换后的会话列表 message: 待发送消息 modelInfo: 模型配置 topicId?: 主题id }
-   */
-  const handleResponseApi = async (
-    conversationId: string,
-    extra: {
-      messages: UnifiedInput[]
-      message: IMessage
-      modelInfo: IModelInfo
-      topicId?: string
-    }
-  ) => {
-    const { messages, message, modelInfo, topicId } = extra
-    let chatStatus = MessageState.loading
-    const abortController = new AbortController() // chat abort controller
-    let modelRes: ContentBlock[] = [] // 模型的回答
-    let modelThought: string = '' // 模型的思考
-    const model = getModelName(modelInfo.modelName)
-    const modelProvider = ai.getModelProvider(model)
-    const conv = getConversation(conversationId, topicId)
-    const filteMessages = messages.findLast((item) => item.role === 'user')!
-
-    // 历史上下文管理
-    let pId: string | undefined
-    const msgIndex = conv?.messages.findIndex((msg) => msg.clientId === message.clientId) || -1
-    if (msgIndex > 1) {
-      pId = conv?.messages
-        .slice(0, msgIndex)
-        .findLast((msg) => !!msg.previousResponseId)?.previousResponseId
-    }
-
-    // 构建运行时参数（特殊处理的字段）
-    const runtimeParams: Record<string, unknown> = {
-      previousResponseId: pId
-    }
-
-    // 使用通用函数构建最终参数
-    const providerParams = buildProviderParams(modelProvider, modelInfo.jsonConfig, runtimeParams)
-
-    const options = {
-      messages: [filteMessages],
-      maxTokens: llmConfig.OpenAI.maxTokens,
-      providerParams,
-      email: user?.email
-    }
-
-    await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
-      if (data.error) {
-        throw new Error(data.error as string)
-      }
-
-      // 处理 refusal
-      if (data.finishReason === 'refusal') {
-        throw new Error(t('refusal'))
-      }
-
-      // 处理中止
-      if (
-        checkAbortAndPushFinal({
-          conversationId,
-          message,
-          abortController,
-          modelRes,
-          modelThought,
-          topicId
-        })
-      ) {
-        return
-      }
-
-      // 更新状态
-      let previousResponseId = (data.responseId || '') as string
-      chatStatus = data.done ? MessageState.finish : MessageState.start
-      modelThought += data.thoughtValue ?? ''
-
-      // 处理响应数据
-      await processStreamValue(data, modelRes, message)
-
-      if (modelRes.length === 0) return
-
-      handlePushMessage(conversationId, message, {
-        content: [...modelRes],
-        thoughtValue: modelThought,
-        status: chatStatus,
-        previousResponseId,
-        topicId,
-        usages: data.usage
-      })
-    })
-  }
-
-  /**
    * chat completion 请求
    * @param conversationId 会话id
    * @param extra { messages: 转换后的会话列表 message: 待发送消息 modelInfo: 模型配置 topicId?: 主题id }
@@ -581,9 +259,9 @@ export const useAi = () => {
       topicId?: string
     }
   ) => {
+    const abortController = new AbortController() // chat abort controller
     const { messages, message, modelInfo, topicId } = extra
     let chatStatus = MessageState.loading
-    const abortController = new AbortController() // chat abort controller
     let modelRes: ContentBlock[] = [] // 模型的回答
     let modelThought: string = '' // 模型的思考
     const model = getModelName(modelInfo.modelName)
@@ -635,6 +313,7 @@ export const useAi = () => {
         content: [...modelRes],
         thoughtValue: modelThought,
         status: chatStatus,
+        previousResponseId: data.done ? data.responseId : undefined,
         topicId,
         usages: data.usage
       })
@@ -668,21 +347,16 @@ export const useAi = () => {
         throw new Error('Model info not found')
       }
 
-      const model = getModelName(modelInfo.modelName)
-      const [messages, basedId] = toAiRequest(conversationId, message.clientId, sendType, topicId)
+      const [messages] = toAiRequest(conversationId, message.clientId, sendType, topicId)
       if (!messages) throw new Error('Messages info not found')
 
       // push 模型消息
       pushMessage(conversationId, toBeSendMsg, { topicId, isEnd: false })
       updateModelInfo(conversationId, { atWork: true }, topicId)
-
-      const strategy = selectModalityStrategy(model)
-      await strategy.execute({
-        conversationId,
-        message: toBeSendMsg,
+      await handleChatCompletion(conversationId, {
         messages,
+        message: toBeSendMsg,
         modelInfo,
-        basedId,
         topicId
       })
     } catch (error: any) {

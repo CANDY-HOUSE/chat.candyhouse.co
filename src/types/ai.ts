@@ -28,10 +28,24 @@ export interface UnifiedResponse<V = string> {
 // 统一的输入格式
 export interface UnifiedInput {
   role: 'system' | 'user' | 'assistant' | 'tool'
-  content: unknown
+  content: ChatCompletionContentPart[]
   name?: string
   cacheControl?: boolean
+  metadata?: Record<string, unknown>
 }
+
+export type ChatCompletionContentPart =
+  | { type: 'text'; text: string; thoughtSignature?: string }
+  | {
+      type: 'image_url'
+      image_url: { url: string }
+      thoughtSignature?: string
+    }
+  | {
+      type: 'file'
+      file: { file_data?: string; filename?: string; file_id?: string }
+      thoughtSignature?: string
+    }
 
 type CommonStreamValue = { annotations?: any[]; previousResponseId?: string }
 type ChatStreamValue = string | Array<{ type: 'text' } & CommonStreamValue>

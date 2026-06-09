@@ -1,5 +1,5 @@
 import type { QuillFileInsert } from '@/components/editor/blot/file'
-import type { UnifiedInput } from '@/types/ai'
+import type { ChatCompletionContentPart, UnifiedInput } from '@/types/ai'
 import type { ContentBlock } from '@/types/messagetypes'
 import { chat, uploadToS3 } from '@/utils'
 import { SendType } from '@constants'
@@ -33,7 +33,7 @@ export const useMessage = () => {
 
         // 将 ContentBlock 转换成 UnifiedInput
         for (const { type, content, url, fileName, fileKey, thoughtSignature } of msg.content!) {
-          let c_ret: any = {
+          let c_ret: ChatCompletionContentPart = {
             type: 'text',
             text: `Unsupported content type: ${type}`
           }
@@ -50,7 +50,6 @@ export const useMessage = () => {
               c_ret = {
                 type: 'image_url',
                 image_url: { url: url || '' },
-                file_id: fileKey,
                 ...(thoughtSignature && { thoughtSignature })
               }
               break
@@ -72,6 +71,10 @@ export const useMessage = () => {
           } else {
             ret.content = [c_ret]
           }
+        }
+
+        if (msg.role === 'assistant' && msg.previousResponseId) {
+          ret.metadata = { previousResponseId: msg.previousResponseId }
         }
 
         chatMsgs.push(ret)
