@@ -6,13 +6,13 @@ import { useMediaQueryContext } from '@/context/MediaQueryContext'
 import {
   anchorAtom,
   dialogAtom,
+  dismissToast,
   imagePreviewSrcsAtom,
   isShowSideBarAtom,
   resetAllAtoms,
   switchAnchor,
   switchDialog,
-  switchToast,
-  toastAtom,
+  toastsAtom,
   userAtom
 } from '@/store'
 import { apiAuthToken } from '@api'
@@ -28,7 +28,7 @@ const LoginPage = lazy(() => import('../pages/login'))
 const RoutesComponent: React.FC = () => {
   const { isMobile } = useMediaQueryContext()
   const location = useLocation()
-  const toast = useAtomValue(toastAtom)
+  const toasts = useAtomValue(toastsAtom)
   const anchor = useAtomValue(anchorAtom)
   const dialog = useAtomValue(dialogAtom)
   const imagePreviewSrcs = useAtomValue(imagePreviewSrcsAtom)
@@ -61,11 +61,7 @@ const RoutesComponent: React.FC = () => {
         </Routes>
       </Suspense>
 
-      <CToast
-        open={toast.visible}
-        message={toast.message || ''}
-        onClose={() => switchToast({ visible: false, message: '' })}
-      />
+      <CToast toasts={toasts} onClose={dismissToast} />
 
       <CModal
         open={dialog.visible}

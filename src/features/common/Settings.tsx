@@ -108,6 +108,7 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
   ]
 
   const handleUpdate = async () => {
+    delete valuesRef.current.jsonConfigRaw
     if (!isEqual(valuesRef.current, originValues)) {
       let success = true
 

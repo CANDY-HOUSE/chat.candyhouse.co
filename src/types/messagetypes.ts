@@ -12,13 +12,18 @@ export interface IModel {
   category?: ModelCategory
   priority?: number
   replacedBy?: string
-  jsonConfigRaw?: string // 原始 JSON 字符串，保留注释和格式
+  jsonConfigRaw?: string // 原始 JSON 字符串，需要删除
 }
 
 export interface IModelInfo extends IModel {
   atWork?: boolean // 模型是否工作中（回答中）
   disable?: boolean // 模型是否被禁用
-  jsonConfig?: Record<string, unknown> // 模型 JSON 配置
+  jsonConfig?: {
+    settings?: Record<string, unknown> // L1 采样参数
+    providerOptions?: Record<string, unknown> // L2 厂商私货参数
+    tools?: Record<string, unknown> // 可用工具配置
+  } // 模型 JSON 配置
+  userNL?: string // 用户输入的自然语言（仅前端）
 }
 
 export interface ContentBlock {

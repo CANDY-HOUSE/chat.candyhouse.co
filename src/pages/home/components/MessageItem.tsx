@@ -182,12 +182,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  background: `linear-gradient(90deg,
-          #00B4DB 0%,
-          #9B59B6 25%,
-          #E74C3C 50%,
-          #F1C40F 75%,
-          #27AE60 100%`,
+                  background: 'var(--gradient-ai)',
                   backgroundSize: '300% 100%'
                 }}
                 animate={{

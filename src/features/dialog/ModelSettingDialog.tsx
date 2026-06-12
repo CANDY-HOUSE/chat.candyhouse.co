@@ -1,3 +1,4 @@
+import { apiPostModelConfig } from '@/api'
 import { useConversation } from '@/hooks/useConversation'
 import { useModel } from '@/hooks/useModel'
 import { switchDialog, switchToast } from '@/store'
@@ -6,11 +7,11 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import InputAdornment from '@mui/material/InputAdornment'
 import Stack from '@mui/material/Stack'
 import { useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import { chat, enhanceEventParams } from '@utils'
-import JSON5 from 'json5'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,7 +27,7 @@ const customStyle = {
   }
 }
 
-const ModelSettingDialog: React.FC<Props> = ({ changeCache, conversationId }) => {
+const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) => {
   const theme = useTheme()
   const { t } = useTranslation()
   const { getModelName } = useModel()
@@ -34,72 +35,40 @@ const ModelSettingDialog: React.FC<Props> = ({ changeCache, conversationId }) =>
   const modelInfo = getAttrValue(conversationId, 'modelInfo')!
   const modelName = getModelName(modelInfo.modelName)
   const conversation = getConversation(conversationId)
-  let jsonConfig = modelInfo.jsonConfig
-  let jsonConfigRaw = modelInfo.jsonConfigRaw
+  const [userNL, setUserNL] = useState<string>(modelInfo.userNL || '')
+  const [loading, setLoading] = useState<boolean>(false)
 
-  // JSON 校验状态
-  const [jsonError, setJsonError] = useState<string>('')
-  const [jsonRawValue, setJsonRawValue] = useState<string>(
-    jsonConfigRaw || (jsonConfig ? JSON.stringify(jsonConfig, null, 2) : '')
-  )
-
-  const handleJsonChange = (value: string) => {
-    setJsonRawValue(value)
-
-    // 如果输入为空，清除错误并重置值
-    if (!value.trim()) {
-      setJsonError('')
-      changeCache({ jsonConfig: undefined, jsonConfigRaw: undefined })
-      return
-    }
-
-    // 解析 JSON
+  const handleConfigGen = async () => {
+    setLoading(true)
     try {
-      const parsedValue = JSON5.parse(value)
+      const result = await apiPostModelConfig(modelName, userNL)
 
-      // 检查解析后的值必须是对象
-      if (typeof parsedValue !== 'object' || parsedValue === null || Array.isArray(parsedValue)) {
-        setJsonError(t('modelSetting.typeError'))
-        return
-      }
-
-      setJsonError('')
-      changeCache({ jsonConfig: parsedValue, jsonConfigRaw: value })
-
-      gtag(
-        'event',
-        'model_setting',
-        enhanceEventParams({
-          setting_type: 'jsonConfig',
-          model_name: modelName
+      if (result) {
+        const { config, explanations } = result
+        explanations.forEach((item) => {
+          switchToast({
+            visible: true,
+            message: item.message,
+            level: item.kind === 'applied' ? Level.success : Level.warning,
+            duration: 6000
+          })
         })
-      )
+        changeCache({ jsonConfig: config, userNL })
+      }
     } catch (error) {
-      setJsonError(error instanceof Error ? error.message : 'Invalid JSON format')
+      switchToast({
+        visible: true,
+        message: error instanceof Error ? error.message : t('SubmissionFail'),
+        level: Level.error
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleJsonKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    // 当按下 Tab 键时，插入缩进而不是切换焦点
-    if (e.key === 'Tab') {
-      e.preventDefault()
-
-      const target = e.target as HTMLTextAreaElement
-      const start = target.selectionStart
-      const end = target.selectionEnd
-      const value = target.value
-
-      // 插入两个空格作为缩进
-      const newValue = value.substring(0, start) + '  ' + value.substring(end)
-
-      // 更新值
-      handleJsonChange(newValue)
-
-      // 设置光标位置
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + 2
-      }, 0)
-    }
+  const handleConfigChange = (value: string) => {
+    setUserNL(value)
+    changeCache({ userNL: value, jsonConfig: {} })
   }
 
   const handleImport = () => {
@@ -156,14 +125,31 @@ const ModelSettingDialog: React.FC<Props> = ({ changeCache, conversationId }) =>
           multiline
           minRows={8}
           variant="outlined"
-          value={jsonRawValue}
+          value={userNL}
           label={t('modelSetting.jsonConfig')}
-          placeholder={'{\n  key: "value",\n}'}
-          error={!!jsonError}
-          helperText={jsonError || ' '}
+          placeholder="用 grok 时打开 X Search Tool 搜索，顺便允许它搜图片。"
           slotProps={{
             inputLabel: { shrink: true },
             formHelperText: { sx: { fontSize: '0.65rem' } },
+            input: {
+              endAdornment: (
+                <InputAdornment position="end" sx={{ alignSelf: 'flex-end', mb: -1.2, mr: -0.5 }}>
+                  <Button
+                    disabled={!userNL.trim() || loading}
+                    size="small"
+                    sx={{
+                      background: 'var(--gradient-ai)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}
+                    onClick={handleConfigGen}
+                    loading={loading}
+                  >
+                    Ai generate
+                  </Button>
+                </InputAdornment>
+              )
+            },
             htmlInput: {
               sx: {
                 overflow: 'auto!important',
@@ -176,8 +162,7 @@ const ModelSettingDialog: React.FC<Props> = ({ changeCache, conversationId }) =>
           sx={{
             mt: 'var(--spacing-md)'
           }}
-          onChange={(e) => handleJsonChange(e.target.value)}
-          onKeyDown={handleJsonKeyDown}
+          onChange={(e) => handleConfigChange(e.target.value)}
         />
       </Box>
 

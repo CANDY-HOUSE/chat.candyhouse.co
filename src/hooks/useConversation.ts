@@ -413,7 +413,6 @@ export const useConversation = () => {
                         theMsg.messageId = result.messageId
                         theMsg.createdAt = result.createdAt
                       } else {
-                        theMsg.messageId = theMsg.clientId
                         theMsg.createdAt = new Date().toISOString()
                       }
 

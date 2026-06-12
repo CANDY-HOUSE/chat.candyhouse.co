@@ -493,3 +493,25 @@ async function lambdaUrlInvoke(
     throw new Error(i18n.t('corporateUserOnly'))
   }
 }
+
+// 根据自然语言生成模型配置
+export const apiPostModelConfig = withLoading(
+  async (model: string, description: string, options: Record<string, unknown> = {}) => {
+    try {
+      const result = await api.post<{
+        config: Record<string, any>
+        explanations: Array<any>
+      }>(`${config.apiPaths.model}/config-gen`, {
+        model,
+        description,
+        options
+      })
+      return result.data
+    } catch {
+      return null
+    }
+  },
+  {
+    enableLoading: false
+  }
+)

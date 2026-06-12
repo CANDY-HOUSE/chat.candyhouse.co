@@ -1,45 +1,59 @@
-import { Alert, Snackbar } from '@mui/material'
-import React from 'react'
+import type { ToastItem } from '@/store/feedBack'
+import { Alert, Box, Grow } from '@mui/material'
+import React, { useEffect } from 'react'
 
 export interface Props {
-  open: boolean
-  message: string
-  level?: 'error' | 'warning' | 'info' | 'success'
-  duration?: number
-  onClose: () => void
+  toasts: ToastItem[]
+  onClose: (id: number) => void
 }
 
-export const CToast: React.FC<Props> = ({
-  open,
-  message,
-  duration = 2000,
-  level = 'info',
+const ToastEntry: React.FC<{ toast: ToastItem; onClose: (id: number) => void }> = ({
+  toast,
   onClose
 }) => {
-  const handleClose = (_: unknown) => {
-    return onClose()
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => onClose(toast.id), toast.duration ?? 2000)
+    return () => clearTimeout(timer)
+  }, [toast.id, toast.duration, onClose])
 
   return (
-    <Snackbar
-      open={open}
-      autoHideDuration={duration}
-      onClose={handleClose}
-      anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-    >
+    <Grow in>
       <Alert
-        severity={level}
+        severity={toast.level ?? 'info'}
         sx={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
+          boxShadow: 3,
           '& .MuiAlert-message': {
             fontSize: '.8rem'
           }
         }}
       >
-        {message}
+        {toast.message}
       </Alert>
-    </Snackbar>
+    </Grow>
+  )
+}
+
+export const CToast: React.FC<Props> = ({ toasts, onClose }) => {
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: (theme) => theme.zIndex.snackbar,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 1
+      }}
+    >
+      {toasts.map((toast) => (
+        <ToastEntry key={toast.id} toast={toast} onClose={onClose} />
+      ))}
+    </Box>
   )
 }

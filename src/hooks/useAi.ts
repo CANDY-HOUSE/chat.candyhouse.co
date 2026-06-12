@@ -1,7 +1,7 @@
 import { apiStreamChat } from '@/api'
 import { llmConfig } from '@/config'
 import { userAtom } from '@/store'
-import type { ModelProvider, StreamValue, UnifiedInput, UnifiedResponse } from '@/types/ai'
+import type { StreamValue, UnifiedInput, UnifiedResponse } from '@/types/ai'
 import type { ContentBlock, IMessage, IModelInfo } from '@/types/messagetypes'
 import {
   ai,
@@ -155,39 +155,6 @@ export const useAi = () => {
   }
 
   /**
-   * 构建厂商参数
-   * @param modelProvider 模型提供商
-   * @param jsonConfig 用户的 JSON 配置
-   * @param runtimeParams 运行时生成的参数（特殊处理的字段）
-   * @returns 最终的 providerParams
-   */
-  const buildProviderParams = (
-    modelProvider: ModelProvider,
-    jsonConfig: Record<string, unknown> | undefined,
-    runtimeParams: Record<string, unknown> = {}
-  ): Partial<Record<ModelProvider, unknown>> => {
-    const specialFields = new Set(Object.keys(runtimeParams))
-
-    // 移除用户配置中的特殊字段
-    const userConfig = Object.keys(jsonConfig || {})
-      .filter((key) => !specialFields.has(key))
-      .reduce(
-        (obj, key) => {
-          obj[key] = jsonConfig![key]
-          return obj
-        },
-        {} as Record<string, unknown>
-      )
-
-    return {
-      [modelProvider]: {
-        ...runtimeParams,
-        ...userConfig
-      }
-    }
-  }
-
-  /**
    * 模型回答处理
    * @param conversationId 会话id
    * @param message 待发送消息
@@ -266,15 +233,14 @@ export const useAi = () => {
     let modelThought: string = '' // 模型的思考
     const model = getModelName(modelInfo.modelName)
     const modelProvider = ai.getModelProvider(model)
-
-    // 使用通用函数构建最终参数
-    const providerParams = buildProviderParams(modelProvider, modelInfo.jsonConfig)
+    const { settings, providerOptions, tools } = modelInfo.jsonConfig || {}
 
     const options = {
       messages,
       maxTokens: llmConfig[modelProvider].maxTokens,
-      providerParams,
-      email: user?.email
+      email: user?.email,
+      ...settings,
+      providerParams: { [modelProvider]: { ...providerOptions, tools } }
     }
 
     await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {

@@ -60,7 +60,15 @@ export const globalStyles = {
     /* 边框圆角 */
     '--radius-sm': 'clamp(0.125rem, 0.125rem + 0.125vw, 0.25rem)',
     '--radius-md': 'clamp(0.25rem, 0.25rem + 0.25vw, 0.5rem)',
-    '--radius-lg': 'clamp(0.5rem, 0.5rem + 0.5vw, 1rem)'
+    '--radius-lg': 'clamp(0.5rem, 0.5rem + 0.5vw, 1rem)',
+
+    /* ai 渐变色 */
+    '--gradient-ai': `linear-gradient(90deg,
+          #00B4DB 0%,
+          #9B59B6 25%,
+          #E74C3C 50%,
+          #F1C40F 75%,
+          #27AE60 100%)`
   },
 
   html: {
