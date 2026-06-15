@@ -32,7 +32,6 @@ export const PageLoader: React.FC = () => {
         alt="Loading..."
         style={{
           width: '120px',
-          height: '120px',
           animation: 'candyPulse 1.5s ease-in-out infinite'
         }}
       />
