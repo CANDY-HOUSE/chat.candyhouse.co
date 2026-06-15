@@ -163,7 +163,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
           variant="outlined"
           value={userNL}
           label={t('modelSetting.jsonConfig')}
-          placeholder="用 grok 时打开 X Search Tool 搜索，顺便允许它搜图片。"
+          placeholder="Describe your preferred model behavior in natural language."
           slotProps={{
             inputLabel: { shrink: true },
             formHelperText: { sx: { fontSize: '0.65rem' } },

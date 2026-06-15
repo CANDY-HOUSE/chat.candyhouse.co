@@ -45,6 +45,27 @@
       &.ql-clean {
         color: var(--text-secondary);
 
+        &:hover,
+        &.ql-active {
+          color: #06c;
+
+          &::before {
+            color: #06c;
+          }
+
+          svg {
+            .ql-fill,
+            .ql-even {
+              fill: #06c;
+            }
+
+            .ql-stroke,
+            .ql-thin {
+              stroke: #06c;
+            }
+          }
+        }
+
         &::before {
           color: var(--text-secondary);
         }

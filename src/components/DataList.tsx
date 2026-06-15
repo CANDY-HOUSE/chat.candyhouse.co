@@ -64,10 +64,21 @@ export const DataList: React.FC<Props> = ({
           divider={item.divider}
           disablePadding={disablePadding}
           dense={dense}
-          sx={{ px: 'var(--spacing-sm)', color: 'var(--text-secondary)' }}
+          sx={{
+            px: 'var(--spacing-sm)',
+            color: 'var(--text-secondary)',
+            '&:hover': {
+              backgroundColor: 'action.hover'
+            }
+          }}
         >
           <ListItemButton
-            sx={{ px: 0 }}
+            sx={{
+              px: 0,
+              '&:hover': {
+                backgroundColor: 'transparent'
+              }
+            }}
             onClick={handleClick(item.handle)}
             disabled={item.disabled}
           >

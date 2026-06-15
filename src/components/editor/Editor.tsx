@@ -10,6 +10,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState
 } from 'react'
@@ -60,6 +61,7 @@ const Editor = forwardRef<EditorHandle, Props>(
     const [isComposing, setIsComposing] = useState(false)
 
     const disableSendRef = useRef(disableSend)
+    const embedRef = useRef(embed)
     const isEditorEmptyRef = useRef(isEditorEmpty)
     const isComposingRef = useRef(isComposing)
     const draftsRef = useRef<DraftsType | null>(getLocalValue(localKey.editorDrafts))
@@ -419,6 +421,10 @@ const Editor = forwardRef<EditorHandle, Props>(
     })
 
     useEffect(() => {
+      embedRef.current = embed
+    }, [embed])
+
+    useEffect(() => {
       disableSendRef.current = disableSend
     }, [disableSend])
 
@@ -535,7 +541,10 @@ const Editor = forwardRef<EditorHandle, Props>(
           if (eventName === 'text-change') {
             const currentContent = quill.getContents()
             const isEmpty = checkIsEmpty(currentContent)
-            setIsEditorEmpty(isEmpty)
+
+            if (!embedRef.current) {
+              setIsEditorEmpty(isEmpty)
+            }
 
             createDraftRef.current(isEmpty ? null : currentContent) // 创建草稿
             onTextChangeRef.current?.(args[0] as Delta, currentContent)
@@ -599,6 +608,7 @@ const Editor = forwardRef<EditorHandle, Props>(
     handleSubmitRef.current = handleSubmit
     const createDraftRef = useRef(createDraft)
     createDraftRef.current = createDraft
+    const toolbarStyle = useMemo(() => ({ borderTop: 'none' }), [])
 
     return (
       <div ref={editorRef} className="editor-container">
@@ -606,11 +616,9 @@ const Editor = forwardRef<EditorHandle, Props>(
           ref={toolbarContainerRef}
           fileFn={insertFiles}
           validateFile={validateFile}
-          disableSend={isEditorEmpty || disableSend}
+          disableSend={embed ? false : isEditorEmpty || disableSend}
           embed={embed}
-          style={{
-            borderTop: 'none'
-          }}
+          style={toolbarStyle}
         />
         <div
           id="editor"

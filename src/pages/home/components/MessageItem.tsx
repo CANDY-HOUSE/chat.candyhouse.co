@@ -51,6 +51,13 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
   const startY = useRef(0)
   const isDragging = useRef(false)
 
+  const editInitContentRef = useRef<ContentBlock[] | undefined>(undefined)
+  if (state === MessageState.edit) {
+    if (editInitContentRef.current === undefined) editInitContentRef.current = content
+  } else {
+    editInitContentRef.current = undefined
+  }
+
   const { updateMessage } = useConversation()
   const { uploadFiles } = useMessage()
 
@@ -76,7 +83,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
     return isCurrentQuestion
   }, [conversationId, isCurrentQuestion, workingModels])
 
-  const handleEditorSubmit = useCallback(
+  const handleEditorSubmitImpl = useCallback(
     async (blocks: ContentBlock[] | null) => {
       let uploadedContent: ContentBlock[] | null = null
       let success = true
@@ -101,13 +108,24 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
     [conversationId, messageId, updateMessage, uploadFiles, user?.isLogin]
   )
 
+  const handleEditorSubmitRef = useRef(handleEditorSubmitImpl)
+  handleEditorSubmitRef.current = handleEditorSubmitImpl
+  const handleEditorSubmit = useCallback(
+    (blocks: ContentBlock[] | null) => handleEditorSubmitRef.current(blocks),
+    []
+  )
+
   const messageContentComp = useMemo(() => {
     switch (true) {
       case state === MessageState.loading:
         return <LoadingDots />
       case state === MessageState.edit:
         return (
-          <EditorPanelInner embed={true} contentBlock={content} submitFn={handleEditorSubmit} />
+          <EditorPanelInner
+            embed={true}
+            contentBlock={editInitContentRef.current}
+            submitFn={handleEditorSubmit}
+          />
         )
       case state === MessageState.error:
         return (

@@ -8,7 +8,7 @@ import ExpandIcon from '@mui/icons-material/OpenInFull'
 import SendIcon from '@mui/icons-material/Send'
 import { IconButton } from '@mui/material'
 import { useAtom, useSetAtom } from 'jotai'
-import React, { forwardRef, useCallback, useRef } from 'react'
+import React, { forwardRef, useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -25,6 +25,22 @@ const Toolbar = forwardRef<HTMLDivElement, Props>(
     const fileInputRef = useRef<HTMLInputElement>(null)
     const setIsShowSideBar = useSetAtom(isShowSideBarAtom)
     const [editorExpanded, setEditorExpanded] = useAtom(editorExpandedAtom)
+    const quillButtonsRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+      if (!quillButtonsRef.current) return
+      quillButtonsRef.current.innerHTML = `
+        <button class="ql-bold"></button>
+        <button class="ql-strike"></button>
+        <button class="ql-italic"></button>
+        <button class="ql-underline"></button>
+        <button class="ql-list" value="ordered"></button>
+        <button class="ql-list" value="bullet"></button>
+        <button class="ql-blockquote"></button>
+        <button class="ql-code-block"></button>
+        <button class="ql-link"></button>
+      `
+    }, [])
 
     const leftToolsMap = [
       {
@@ -108,15 +124,7 @@ const Toolbar = forwardRef<HTMLDivElement, Props>(
               gap: 0
             }}
           >
-            <button className="ql-bold"></button>
-            <button className="ql-strike"></button>
-            <button className="ql-italic"></button>
-            <button className="ql-underline"></button>
-            <button className="ql-list" value="ordered"></button>
-            <button className="ql-list" value="bullet"></button>
-            <button className="ql-blockquote"></button>
-            <button className="ql-code-block"></button>
-            <button className="ql-link"></button>
+            <div ref={quillButtonsRef} style={{ display: 'flex' }} />
           </HorizontalCollapse>
 
           <button className="ql-clean"></button>
