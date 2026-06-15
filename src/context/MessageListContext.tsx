@@ -10,15 +10,20 @@ export interface WidthItem {
 const MessageListContext = React.createContext<{
   widths: WidthItem[]
   setWidths: React.Dispatch<React.SetStateAction<WidthItem[]>>
+  expandedIndex: number
 }>({
   widths: [],
-  setWidths: () => {}
+  setWidths: () => {},
+  expandedIndex: -1
 })
 
 export const MessageListProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [widths, setWidths] = useState<WidthItem[]>([])
 
-  const value = useMemo(() => ({ widths, setWidths }), [widths])
+  const value = useMemo(
+    () => ({ widths, setWidths, expandedIndex: widths.findIndex((w) => w.expanded) }),
+    [widths]
+  )
 
   return <MessageListContext.Provider value={value}>{children}</MessageListContext.Provider>
 }

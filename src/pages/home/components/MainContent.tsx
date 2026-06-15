@@ -5,6 +5,7 @@ import { ResizableDivider } from '@/features/common/ResizableDivider'
 import { ResizableDividerMain } from '@/features/common/ResizableDividerMain'
 import EditorPanel from '@/features/editor/EditorPanel'
 import RealtimePanel from '@/features/media/RealtimePanel'
+import { useConversation } from '@/hooks/useConversation'
 import {
   UI_CONSTANTS,
   activeTopicIdAtom,
@@ -47,7 +48,8 @@ const customStyle = {
 
 const HomeRightPanel = () => {
   const { isMobile } = useMediaQueryContext()
-  const { widths, setWidths } = useMessageListContext()
+  const { widths, setWidths, expandedIndex } = useMessageListContext()
+  const { updateModelInfo } = useConversation()
   const activeTopicId = useAtomValue(activeTopicIdAtom)
   const loading = useAtomValue(loadingAtom)
   const sideBarWidth = useAtomValue<number>(sideBarWidthAtom)
@@ -123,6 +125,22 @@ const HomeRightPanel = () => {
     },
     [setWidths, widths]
   )
+
+  // 监听 activeIndex变化
+  useEffect(() => {
+    if (!isMobile) return
+
+    conversationsRef.current.forEach((conv, index) => {
+      updateModelInfo(conv.id, { disable: index !== activeIndex })
+    })
+  }, [activeIndex, isMobile, updateModelInfo])
+
+  // 监听是否展开会话列表
+  useEffect(() => {
+    conversationsRef.current.forEach((conv, index) => {
+      updateModelInfo(conv.id, { disable: index !== expandedIndex && expandedIndex !== -1 })
+    })
+  }, [expandedIndex, updateModelInfo])
 
   // 优化 swiper enable 判定
   useEffect(() => {
@@ -231,7 +249,7 @@ const HomeRightPanel = () => {
             className="none-scrollbar"
             sx={{
               overflowY: 'hidden',
-              overflowX: 'auto',
+              overflowX: expandedIndex < 0 ? 'auto' : 'hidden',
               position: 'relative',
               flex: 'auto',
               display: 'flex',

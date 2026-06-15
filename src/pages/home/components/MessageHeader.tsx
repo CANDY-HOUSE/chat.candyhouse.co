@@ -1,13 +1,11 @@
-import { CSwitch } from '@/components/CSwitch'
 import { useMediaQueryContext } from '@/context/MediaQueryContext'
 import { useMessageListContext } from '@/context/MessageListContext'
 import Settings from '@/features/common/Settings'
 import RealtimeAudio, { type RealtimeAudioRef } from '@/features/media/RealtimeAudio'
 import { useConversation } from '@/hooks/useConversation'
-import { focusMessageAtom, userAtom, viewTypeAtom } from '@/store'
+import { focusMessageAtom, viewTypeAtom } from '@/store'
 import type { IConversation } from '@/types/messagetypes'
 import { enhanceEventParams } from '@/utils'
-import { apiConversationsUpdate } from '@api'
 import { MessageState, ViewModel } from '@constants'
 import StopIcon from '@mui/icons-material/Stop'
 import { Box, IconButton, Stack, Typography } from '@mui/material'
@@ -34,7 +32,6 @@ const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
   const { isMobile } = useMediaQueryContext()
   const { widths, setWidths } = useMessageListContext()
   const viewType = useAtomValue(viewTypeAtom)
-  const user = useAtomValue(userAtom)
   const focusMessage = useAtomValue(focusMessageAtom)
   const { updateModelInfo } = useConversation()
   const { conversationId, modelInfo, messages } = conversation
@@ -44,12 +41,6 @@ const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
   const isShowStopBtn = useMemo(() => {
     return modelInfo.atWork && !modelInfo.modelName.includes('realtime')
   }, [modelInfo.atWork, modelInfo.modelName])
-
-  const switchToggle = (attr: 'disable') => {
-    const value = !modelInfo[attr]
-    updateModelInfo(conversationId, { [attr]: value })
-    user?.isLogin && apiConversationsUpdate({ id: conversationId, modelInfo: { [attr]: value } })
-  }
 
   const expandToggle = (forceExpanded?: boolean) => {
     if (widths.length <= 1 || isMobile) return
@@ -137,9 +128,6 @@ const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
         >
           {modelInfo.alias || modelInfo.modelName}
         </Typography>
-
-        {/* disable button */}
-        <CSwitch checked={!modelInfo.disable} onChange={() => switchToggle('disable')} />
 
         {/* realtime button */}
         {modelInfo.modelName.includes('realtime') && (

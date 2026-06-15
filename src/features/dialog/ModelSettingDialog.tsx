@@ -54,6 +54,9 @@ const AccordionSummary = styled((props: AccordionSummaryProps) => (
   },
   [`& .${accordionSummaryClasses.content}`]: {
     margin: theme.spacing(1)
+  },
+  [`& .${accordionSummaryClasses.content}.${accordionSummaryClasses.expanded}`]: {
+    margin: theme.spacing(1)
   }
 }))
 
