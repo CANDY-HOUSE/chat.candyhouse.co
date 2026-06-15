@@ -67,7 +67,9 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
   const conversation = getConversation(conversationId)
   const [userNL, setUserNL] = useState<string>(modelInfo.userNL || '')
   const [loading, setLoading] = useState<boolean>(false)
-  const formattedJsonConfig = JSON.stringify(modelInfo.jsonConfig || {}, null, 2)
+  const [formattedJsonConfig, setFormattedJsonConfig] = useState<string>(
+    JSON.stringify(modelInfo.jsonConfig || {}, null, 2)
+  )
 
   const handleConfigGen = async () => {
     setLoading(true)
@@ -85,6 +87,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
           })
         })
         changeCache({ jsonConfig: config, userNL })
+        setFormattedJsonConfig(JSON.stringify(config, null, 2))
       }
     } catch (error) {
       switchToast({
