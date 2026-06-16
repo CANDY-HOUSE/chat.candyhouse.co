@@ -60,7 +60,7 @@ export const workingModelsAtom = atom((get) => {
 
     itemAtoms.forEach((atom) => {
       const conv = get(atom)
-      if (conv.modelInfo.atWork) {
+      if (conv.modelInfo?.atWork) {
         workingModels.push({ id: conv.conversationId, atom })
       }
     })
