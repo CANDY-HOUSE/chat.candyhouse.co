@@ -30,7 +30,7 @@ export const useAi = () => {
 
   /** 检查用户是否主动中止回答
    * @param conversationId 会话id
-   * @param message 待发送消息
+   * @param toBeSendMessage 待发送消息
    * @param abortController 中止控制器
    * @param modelRes 模型回答内容
    * @param modelThought 模型思考内容
@@ -39,7 +39,7 @@ export const useAi = () => {
    */
   const checkAbortAndPushFinal = (params: {
     conversationId: string
-    message: IMessage
+    toBeSendMessage: IMessage
     abortController: AbortController
     modelRes: string | ContentBlock[]
     modelThought?: string
@@ -47,7 +47,7 @@ export const useAi = () => {
   }): boolean => {
     const {
       conversationId,
-      message,
+      toBeSendMessage,
       abortController,
       modelRes,
       modelThought = '',
@@ -58,7 +58,7 @@ export const useAi = () => {
     const modelInfoRealTime = getAttrValue(conversationId, 'modelInfo', topicId)
     if (!modelInfoRealTime?.atWork) {
       abortController.abort()
-      handlePushMessage(conversationId, message, {
+      handlePushMessage(conversationId, toBeSendMessage, {
         content: Array.isArray(modelRes) ? [...modelRes] : modelRes,
         thoughtValue: modelThought,
         status: MessageState.finish,
@@ -120,6 +120,7 @@ export const useAi = () => {
       for (const item of value) {
         switch (item.type) {
           case 'text': {
+            // 处理文本块中的注释（如来源链接等）
             const annotations = item.annotations || []
             processTextAnnotations(message, annotations)
             break
@@ -213,21 +214,26 @@ export const useAi = () => {
   )
 
   /**
-   * chat completion 请求
+   * 请求模型回答并处理
    * @param conversationId 会话id
-   * @param extra { messages: 转换后的会话列表 message: 待发送消息 modelInfo: 模型配置 topicId?: 主题id }
+   * @param extra {
+   *  messages: 转换后的会话列表
+   *  toBeSendMessage: 待发送消息
+   *  modelInfo: 模型配置
+   *  topicId?: 主题id
+   * }
    */
-  const handleChatCompletion = async (
+  const handleModelResponse = async (
     conversationId: string,
     extra: {
       messages: UnifiedInput[]
-      message: IMessage
+      toBeSendMessage: IMessage
       modelInfo: IModelInfo
       topicId?: string
     }
   ) => {
     const abortController = new AbortController() // chat abort controller
-    const { messages, message, modelInfo, topicId } = extra
+    const { messages, toBeSendMessage, modelInfo, topicId } = extra
     let chatStatus = MessageState.loading
     let modelRes: ContentBlock[] = [] // 模型的回答
     let modelThought: string = '' // 模型的思考
@@ -243,6 +249,7 @@ export const useAi = () => {
       providerParams: { [modelProvider]: { ...providerOptions, tools } }
     }
 
+    // 请求模型回答
     await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
       if (data.error) {
         throw new Error(data.error as string)
@@ -253,10 +260,11 @@ export const useAi = () => {
         throw new Error(t('refusal'))
       }
 
+      // 检查是否已中止
       if (
         checkAbortAndPushFinal({
           conversationId,
-          message,
+          toBeSendMessage,
           abortController,
           modelRes,
           modelThought,
@@ -271,11 +279,12 @@ export const useAi = () => {
       modelThought += data.thoughtValue ?? ''
 
       // 处理响应数据
-      await processStreamValue(data, modelRes, message)
+      await processStreamValue(data, modelRes, toBeSendMessage)
 
+      // 无内容更新时不推送消息
       if (modelRes.length === 0) return
 
-      handlePushMessage(conversationId, message, {
+      handlePushMessage(conversationId, toBeSendMessage, {
         content: [...modelRes],
         thoughtValue: modelThought,
         status: chatStatus,
@@ -289,18 +298,19 @@ export const useAi = () => {
   /**
    * 向模型发送消息
    * @param conversationId 会话id
-   * @param clientId 客户端消息 id
-   * @param toBeSendMsg 待发送消息
+   * @param message 消息体: 用户消息 or 模型消息（刷新时）
+   * @param clientId 消息 id（前端生成）
+   * @param toBeSendMessage 待发送消息
    * @returns
    */
   const handleSendMessage = async (
     conversationId: string,
     message: IMessage,
-    toBeSendMsg: IMessage,
+    toBeSendMessage: IMessage,
     topicId?: string
   ) => {
     try {
-      const sendType = toBeSendMsg.sendType || SendType.normal
+      const sendType = toBeSendMessage.sendType || SendType.normal
 
       // push 用户消息
       if (sendType === SendType.normal) {
@@ -317,11 +327,13 @@ export const useAi = () => {
       if (!messages) throw new Error('Messages info not found')
 
       // push 模型消息
-      pushMessage(conversationId, toBeSendMsg, { topicId, isEnd: false })
+      pushMessage(conversationId, toBeSendMessage, { topicId, isEnd: false })
+      // 更新模型工作状态
       updateModelInfo(conversationId, { atWork: true }, topicId)
-      await handleChatCompletion(conversationId, {
+      // 请求模型回答
+      await handleModelResponse(conversationId, {
         messages,
-        message: toBeSendMsg,
+        toBeSendMessage,
         modelInfo,
         topicId
       })
@@ -335,7 +347,7 @@ export const useAi = () => {
       pushMessage(
         conversationId,
         {
-          ...toBeSendMsg,
+          ...toBeSendMessage,
           state: MessageState.error,
           content: [chat.createContentBlock(errorMessage)]
         },
@@ -347,7 +359,8 @@ export const useAi = () => {
   /**
    * 发送消息
    * @param conversationId 会话id
-   * @param message 消息体
+   * @param message 消息体: 用户消息 or 模型消息（刷新时）
+   * @param options 其他选项 包括：发送类型/主题id
    */
   const sendMessage = useCallback(
     (
@@ -356,22 +369,22 @@ export const useAi = () => {
       options?: Partial<{ sendType: SendType; topicId: string }>
     ) => {
       const { sendType = SendType.normal, topicId } = options || {}
-      const toBeSendMsg = chat.createTplMsg(message.model, 'assistant', sendType) // 待发送给模型的消息
+      const toBeSendMessage = chat.createTplMsg(message.model, 'assistant', sendType) // 待发送给模型的消息
 
       if (sendType === SendType.refresh) {
         if (message.role === 'assistant') {
           // 刷新模型消息
-          toBeSendMsg.clientId = message.clientId
-          toBeSendMsg.messageId = message.messageId
+          toBeSendMessage.clientId = message.clientId
+          toBeSendMessage.messageId = message.messageId
         }
         if (message.role === 'user') {
           // 刷新用户消息
-          toBeSendMsg.basedId = message.messageId
+          toBeSendMessage.basedId = message.messageId
           updateMessage(conversationId, message.messageId!, { isCurrentQuestion: true })
         }
       }
 
-      handleSendMessage(conversationId, message, toBeSendMsg, topicId)
+      handleSendMessage(conversationId, message, toBeSendMessage, topicId)
     },
     [user?.isLogin, updateMessage, t]
   )

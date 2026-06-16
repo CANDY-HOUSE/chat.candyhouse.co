@@ -94,6 +94,7 @@ const EditorPanel = () => {
       for (const { atom } of convs) {
         const conv = store.get(atom)
         const modelInfo = getAttrValue(conv.conversationId, 'modelInfo')
+
         if (!modelInfo || modelInfo.disable) continue
         const model = getModelName(modelInfo.modelName)
 

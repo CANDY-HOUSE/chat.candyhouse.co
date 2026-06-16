@@ -244,6 +244,7 @@ const createTplConv = (topicId: string, model: string): IConversation => {
   }
 }
 
+// 统计 ContentBlock 数组中所有文本块的字符数
 const countContentBlocksChars = (blocks: ContentBlock[]): number => {
   let totalChars = 0
 

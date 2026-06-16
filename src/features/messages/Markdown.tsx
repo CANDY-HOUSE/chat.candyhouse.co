@@ -9,6 +9,7 @@ import Typography, { type TypographyProps } from '@mui/material/Typography'
 import { logger, utils } from '@utils'
 import { useAtom, useAtomValue } from 'jotai'
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import { PhotoProvider, PhotoView } from 'react-photo-view'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -22,7 +23,6 @@ import remarkMath from 'remark-math'
 import { visit } from 'unist-util-visit'
 
 import 'katex/dist/katex.min.css'
-import { useTranslation } from 'react-i18next'
 import 'react-photo-view/dist/react-photo-view.css'
 
 interface MarkdownProps {
@@ -86,6 +86,10 @@ export const Markdown = ({
       '\\RR': '\\mathbb{R}'
     }
   }
+
+  // 解析前归一化 LaTeX 原生分隔符（OpenAI/xAI 常用 \(\) \[\]）到 $ / $$，
+  // 否则 Markdown 会先把 \( \[ 当作转义标点吃掉反斜杠，AST 阶段已无法识别。
+  const normalizedChildren = React.useMemo(() => normalizeMathDelimiters(children), [children])
 
   return (
     <ReactMarkdown
@@ -239,7 +243,7 @@ export const Markdown = ({
         }
       }}
     >
-      {children}
+      {normalizedChildren}
     </ReactMarkdown>
   )
 }
@@ -361,6 +365,21 @@ function CodeBlock({ children = [], className, hiddenCodeCopyButton, fontSize }:
       </div>
     </div>
   )
+}
+
+// 匹配成对 \[...\] / \(...\) 才转为 $$ / $。
+const MATH_DELIMITER_RE =
+  /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)/g
+
+function normalizeMathDelimiters(input: string): string {
+  if (!input || (input.indexOf('\\(') === -1 && input.indexOf('\\[') === -1)) return input
+
+  return input.replace(MATH_DELIMITER_RE, (match, code, block, inline) => {
+    if (code !== undefined) return code // 代码原样返回，不动
+    if (block !== undefined) return `$$${block}$$`
+    if (inline !== undefined) return `$${inline}$`
+    return match
+  })
 }
 
 type AllowVideoOptions = { nonces?: string[] }

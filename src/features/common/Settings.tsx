@@ -108,20 +108,20 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
   ]
 
   const handleUpdate = async () => {
-    delete valuesRef.current.jsonConfigRaw
     if (!isEqual(valuesRef.current, originValues)) {
+      const { jsonConfigRaw, disable, ...mI } = valuesRef.current
       let success = true
 
       if (user?.isLogin) {
         success = await apiConversationsUpdate({
           id: conversationId,
-          modelInfo: valuesRef.current
+          modelInfo: mI
         })
       }
 
       if (success) {
-        updateModelInfo(conversationId, valuesRef.current)
-        originValues = { ...valuesRef.current }
+        updateModelInfo(conversationId, mI)
+        originValues = { ...mI }
       } else {
         switchToast({ visible: true, message: t('SubmissionFail'), level: Level.error })
       }

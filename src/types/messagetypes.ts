@@ -5,8 +5,8 @@ export type RoleType = 'user' | 'assistant'
 
 export interface IModel {
   modelName: string
-  isDefault?: boolean
   alias?: string
+  isDefault?: boolean
   provider?: string
   status?: ModelStatus
   category?: ModelCategory
@@ -23,7 +23,7 @@ export interface IModelInfo extends IModel {
     providerOptions?: Record<string, unknown> // L2 厂商私货参数
     tools?: Record<string, unknown> // 可用工具配置
   } // 模型 JSON 配置
-  userNL?: string // 用户输入的自然语言（仅前端）
+  userNL?: string // 用户输入的自然语言
 }
 
 export interface ContentBlock {
