@@ -105,6 +105,7 @@ const Toolbar = forwardRef<HTMLDivElement, Props>(
             )
           })}
           <input
+            multiple
             type="file"
             ref={fileInputRef}
             style={{ display: 'none' }}
