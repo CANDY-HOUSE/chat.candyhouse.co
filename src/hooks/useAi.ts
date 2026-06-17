@@ -1,5 +1,4 @@
 import { apiStreamChat } from '@/api'
-import { llmConfig } from '@/config'
 import { userAtom } from '@/store'
 import type { StreamValue, UnifiedInput, UnifiedResponse } from '@/types/ai'
 import type { ContentBlock, IMessage, IModelInfo } from '@/types/messagetypes'
@@ -243,7 +242,6 @@ export const useAi = () => {
 
     const options = {
       messages,
-      maxTokens: llmConfig[modelProvider].maxTokens,
       email: user?.email,
       ...settings,
       providerParams: { [modelProvider]: { ...providerOptions, tools } }
