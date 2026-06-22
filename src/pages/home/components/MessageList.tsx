@@ -137,16 +137,15 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
           preAnchorTimestamp?: string
           nextToken?: string
         } = { id: conversationId }
-
-        if (focusMessage === null) {
-          param.nextToken = nextToken
-        } else {
-          param.preAnchorTimestamp = nextToken
-        }
+        const inAnchorMode = focusMessage?.conversationId === conversationId
 
         if (isRefresh) {
-          delete param.preAnchorTimestamp
+          // 刷新：回到最新消息，不带任何分页游标
           setFocusMessage(null)
+        } else if (inAnchorMode) {
+          param.preAnchorTimestamp = nextToken
+        } else {
+          param.nextToken = nextToken
         }
 
         const res = await apiMessagesGet(param)
@@ -446,7 +445,7 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
               size="large"
               sx={{ my: 'var(--spacing-md)' }}
               endIcon={<SouthIcon />}
-              onClick={() => loadMore(focusMessage.conversationId, undefined, true)}
+              onClick={() => handleLoadMore(focusMessage.conversationId, undefined, true)}
             >
               {t('jumpToLatestMsg')}
             </Button>

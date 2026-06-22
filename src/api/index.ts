@@ -324,8 +324,8 @@ export const apiMessagesGet = withLoading(
     id: string
     limit?: number
     nextToken?: string
-    preAnchorTimestamp?: string
-    nextAnchorTimestamp?: string
+    preAnchorTimestamp?: string // 获取上一页消息的锚点时间戳
+    nextAnchorTimestamp?: string // 获取下一页消息的锚点时间戳
   }) => {
     try {
       const result = await api.get<{ messages: Array<IMessage>; nextToken: string | null }>(
