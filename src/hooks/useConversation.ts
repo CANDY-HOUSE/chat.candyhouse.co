@@ -73,6 +73,10 @@ export const useConversation = () => {
 
       try {
         const index = convs.findIndex((conv) => conv.conversationId === conversationId)
+        if (index === -1) {
+          logger.warn(`Conversation ${conversationId} not found`)
+          return false
+        }
         const conv = convs[index]!
         let success = true
 

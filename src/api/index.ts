@@ -9,9 +9,17 @@ import type {
   ITopics
 } from '@/types/messagetypes'
 import { clearAllLocalStorage } from '@/utils'
-import { Signer } from '@aws-amplify/core'
+import { signRequest } from '@aws-amplify/core/internals/aws-client-utils'
 import { config } from '@config'
-import { Auth } from 'aws-amplify'
+import {
+  confirmSignIn,
+  fetchAuthSession,
+  fetchUserAttributes,
+  getCurrentUser,
+  signIn,
+  signOut,
+  signUp
+} from 'aws-amplify/auth'
 import i18n from '../i18n'
 import { hideLoading, showLoading } from '../store'
 import { api } from './http'
@@ -43,19 +51,27 @@ const withLoading = <T extends (...args: never[]) => Promise<any>>(
 // 用户登录鉴权相关 start -- 包含注册、登录、登出、获取用户信息
 export const apiLogin = withLoading(async (email: string) => {
   try {
-    const result = await Auth.signIn(email)
+    const result = await signIn({
+      username: email,
+      options: { authFlowType: 'CUSTOM_WITHOUT_SRP' }
+    })
     return { isOk: true, data: result }
   } catch (e: unknown) {
     if (e instanceof Error) {
-      if (e.name === 'NotAuthorizedException') {
-        await Auth.signUp({
+      if (e.name === 'NotAuthorizedException' || e.name === 'UserNotFoundException') {
+        await signUp({
           username: email,
           password: 'TempPass123!',
-          attributes: {
-            email: email
+          options: {
+            userAttributes: {
+              email
+            }
           }
         })
-        const signInResult = await Auth.signIn(email)
+        const signInResult = await signIn({
+          username: email,
+          options: { authFlowType: 'CUSTOM_WITHOUT_SRP' }
+        })
         return { isOk: true, data: signInResult }
       }
     }
@@ -64,17 +80,16 @@ export const apiLogin = withLoading(async (email: string) => {
   }
 })
 
-export const apiAuth = withLoading(async (user: unknown, code: string) => {
-  const result = await Auth.sendCustomChallengeAnswer(user, code)
-  return result.signInUserSession ? { isOk: true, data: result } : { isOk: false }
+export const apiAuth = withLoading(async (_user: unknown, code: string) => {
+  const result = await confirmSignIn({ challengeResponse: code })
+  return result.isSignedIn ? { isOk: true, data: result } : { isOk: false }
 })
 
 export const apiAuthToken = withLoading(async (): Promise<BeanUser> => {
   try {
-    const user = await Auth.currentAuthenticatedUser()
-    const username = user.attributes.nickname
-    const email = user.attributes.email
-    return { name: username, email: email, isLogin: true }
+    await getCurrentUser()
+    const attributes = await fetchUserAttributes()
+    return { name: attributes.nickname ?? '', email: attributes.email ?? '', isLogin: true }
   } catch {
     return { name: '', email: '', isLogin: false }
   }
@@ -82,7 +97,7 @@ export const apiAuthToken = withLoading(async (): Promise<BeanUser> => {
 
 export const apiLogout = withLoading(
   async () => {
-    await Auth.signOut()
+    await signOut()
     clearAllLocalStorage()
     gtag('set', {
       user_id: null
@@ -452,27 +467,29 @@ async function lambdaUrlInvoke(
 
     // 构建请求 body
     const requestBody = JSON.stringify(params)
-    const request = {
-      method: 'POST',
-      url,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      data: requestBody
+
+    // 获取临时 IAM 凭证
+    const { credentials } = await fetchAuthSession()
+    if (!credentials) {
+      throw new Error('No credentials')
     }
 
-    // 构建 AWS Signature V4 签名
-    const credentials = await Auth.currentCredentials()
-    const signedRequest = Signer.sign(
-      request,
+    // 使用 Amplify 内置的 SigV4 签名器（与 aws-amplify 版本锁步，无需额外签名库）
+    const signedRequest = signRequest(
       {
-        access_key: credentials.accessKeyId,
-        secret_key: credentials.secretAccessKey,
-        session_token: credentials.sessionToken
+        url: new URL(url),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody
       },
       {
-        service: 'lambda',
-        region
+        credentials: {
+          accessKeyId: credentials.accessKeyId,
+          secretAccessKey: credentials.secretAccessKey,
+          sessionToken: credentials.sessionToken
+        },
+        signingRegion: region,
+        signingService: 'lambda'
       }
     )
 

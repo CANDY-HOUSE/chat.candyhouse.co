@@ -1,4 +1,3 @@
-import { CognitoIdentityClient } from '@aws-sdk/client-cognito-identity'
 import { S3Client } from '@aws-sdk/client-s3'
 import { fromCognitoIdentityPool } from '@aws-sdk/credential-provider-cognito-identity'
 import { Upload } from '@aws-sdk/lib-storage'
@@ -15,9 +14,9 @@ interface UploadOptions {
 const s3Client = new S3Client({
   region: config.s3Config.aws_user_files_s3_bucket_region,
   credentials: fromCognitoIdentityPool({
-    client: new CognitoIdentityClient({
+    clientConfig: {
       region: config.s3Config.aws_user_files_s3_bucket_region
-    }),
+    },
     identityPoolId: process.env.REACT_APP_IDENTITY_POOL_ID || ''
   })
 })

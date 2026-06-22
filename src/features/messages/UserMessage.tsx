@@ -150,7 +150,20 @@ export const UserMessage: React.FC<Props> = ({ blocks, markKey, className }) => 
           padding: 0,
           whiteSpace: 'normal',
           wordWrap: 'break-word',
-          wordBreak: 'normal'
+          wordBreak: 'normal',
+          '& ol > li': { listStyleType: 'decimal', listStylePosition: 'outside' },
+          '& ul > li': { listStyleType: 'disc', listStylePosition: 'outside' },
+          '& pre': {
+            backgroundColor: '#23241f',
+            color: '#f8f8f2',
+            borderRadius: '3px',
+            padding: '5px 10px',
+            margin: '5px 0',
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+            overflowX: 'auto',
+            fontFamily: 'monospace'
+          }
         }}
         dangerouslySetInnerHTML={{ __html: cleanHtml }}
       ></Box>

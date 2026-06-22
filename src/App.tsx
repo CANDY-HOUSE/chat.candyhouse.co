@@ -18,23 +18,27 @@ import RoutesComponent from './router/RoutesComponent'
 import { fontSizeAtom, languageAtom, modelSelectAtom, store, themeAtom } from './store'
 
 Amplify.configure({
-  aws_user_files_s3_bucket: config.s3Config.aws_user_files_s3_bucket,
-  aws_user_files_s3_bucket_region: config.s3Config.aws_user_files_s3_bucket_region,
   Auth: {
-    region: process.env.REACT_APP_API_REGION,
-    userPoolId: process.env.REACT_APP_USER_POOL_ID,
-    userPoolWebClientId: process.env.REACT_APP_USER_POOL_WEB_CLIENT_ID,
-    identityPoolId: process.env.REACT_APP_IDENTITY_POOL_ID,
-    mandatorySignIn: false
+    Cognito: {
+      userPoolId: process.env.REACT_APP_USER_POOL_ID as string,
+      userPoolClientId: process.env.REACT_APP_USER_POOL_WEB_CLIENT_ID as string,
+      identityPoolId: process.env.REACT_APP_IDENTITY_POOL_ID as string,
+      allowGuestAccess: true
+    }
   },
   API: {
-    endpoints: [
-      {
-        region: process.env.REACT_APP_API_REGION,
-        name: process.env.REACT_APP_API_NAME,
-        endpoint: process.env.REACT_APP_API_ENDPOINT
+    REST: {
+      [process.env.REACT_APP_API_NAME as string]: {
+        endpoint: process.env.REACT_APP_API_ENDPOINT as string,
+        region: process.env.REACT_APP_API_REGION as string
       }
-    ]
+    }
+  },
+  Storage: {
+    S3: {
+      bucket: config.s3Config.aws_user_files_s3_bucket as string,
+      region: config.s3Config.aws_user_files_s3_bucket_region as string
+    }
   }
 })
 

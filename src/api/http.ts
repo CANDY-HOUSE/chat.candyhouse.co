@@ -1,15 +1,16 @@
 import { logger } from '@utils'
-import { API } from 'aws-amplify'
-import axios from 'axios'
+import { del, get, patch, post, put } from 'aws-amplify/api'
 
-const axiosInstance = axios.create({ timeout: 30000 })
-API.configure({ customHttpClient: axiosInstance })
+// REST 请求体类型（DocumentType | FormData | undefined）
+type RestBody = NonNullable<Parameters<typeof post>[0]['options']>['body']
+
+const restOps = { get, post, put, patch, del }
 
 // 基础类型定义
 type Method = 'get' | 'post' | 'put' | 'patch' | 'del'
 
 interface ApiOptions {
-  params?: Record<string, any>
+  params?: Record<string, unknown>
   retry?: number
 }
 
@@ -29,24 +30,35 @@ async function request<T = unknown>(
 ): Promise<ApiResponse<T>> {
   const { params, retry = 0 } = options || {}
 
-  // 构建 URL
-  const url = params ? `${path}?${new URLSearchParams(params).toString()}` : path
+  const apiName = process.env.REACT_APP_API_NAME as string
+
+  // 将查询参数统一转换为字符串
+  const queryParams = params
+    ? Object.entries(params).reduce<Record<string, string>>((acc, [key, value]) => {
+        if (value !== undefined && value !== null) {
+          acc[key] = String(value)
+        }
+        return acc
+      }, {})
+    : undefined
 
   // 构建请求配置
-  const config = method === 'get' ? {} : { body: data }
+  const restOptions = {
+    timeout: 30000,
+    ...(queryParams && Object.keys(queryParams).length > 0 ? { queryParams } : {}),
+    ...(method !== 'get' && data !== undefined ? { body: data as RestBody } : {})
+  }
 
   let lastError: unknown
 
   // 重试逻辑
   for (let i = 0; i <= retry; i++) {
     try {
-      const response = (await API[method](
-        process.env.REACT_APP_API_NAME as string,
-        url,
-        config
-      )) as ApiResponse<T>
+      const { body } = await restOps[method]({ apiName, path, options: restOptions }).response
 
       // 统一处理响应
+      const response = (await body.json()) as unknown as ApiResponse<T>
+
       if (response?.code && response.code !== 200) {
         throw new Error(response.message || `API error: ${path}`)
       }
@@ -69,21 +81,21 @@ async function request<T = unknown>(
 }
 
 export const api = {
-  get: <T = unknown,>(
+  get: <T = unknown>(
     path: string,
     params?: Record<string, unknown>,
     options: Omit<ApiOptions, 'params'> = {}
   ) => request<T>('get', path, undefined, { ...options, params }),
 
-  post: <T = unknown,>(path: string, data?: unknown, options?: ApiOptions) =>
+  post: <T = unknown>(path: string, data?: unknown, options?: ApiOptions) =>
     request<T>('post', path, data, options),
 
-  put: <T = unknown,>(path: string, data?: unknown, options?: ApiOptions) =>
+  put: <T = unknown>(path: string, data?: unknown, options?: ApiOptions) =>
     request<T>('put', path, data, options),
 
-  patch: <T = unknown,>(path: string, data?: unknown, options?: ApiOptions) =>
+  patch: <T = unknown>(path: string, data?: unknown, options?: ApiOptions) =>
     request<T>('patch', path, data, options),
 
-  delete: <T = unknown,>(path: string, data?: unknown, options?: ApiOptions) =>
+  delete: <T = unknown>(path: string, data?: unknown, options?: ApiOptions) =>
     request<T>('del', path, data, options)
 }
