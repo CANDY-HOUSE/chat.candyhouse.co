@@ -73,5 +73,5 @@ export const languageJa = {
   allTopics: 'すべてのトピック',
   jumpToLatestMsg: '最新のメッセージへ移動',
   corporateUserOnly:
-    '⚠️ 現在は、biz有料プランのお客様および弊社社員のみご利用いただけます。利用回数制限付きの無料プランは、2026年3月に一般公開予定です。ぜひご期待くださいませ。'
+    '⚠️ お客様よりご報告いただいた問題につきましては、現在のところ、弊社の Biz会員プラン をご利用いただくことで解決可能です。お申し込みはこちら：https://biz.candyhouse.co/biz/settings'
 }

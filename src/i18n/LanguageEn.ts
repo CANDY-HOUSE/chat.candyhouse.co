@@ -71,5 +71,5 @@ export const languageEn = {
   allTopics: 'All Topics',
   jumpToLatestMsg: 'Jump to latest message',
   corporateUserOnly:
-    '⚠️ Currently, only available to Biz plan subscribers and our employees. A free plan with limited usage will be publicly available in March 2026. Stay tuned!'
+    '⚠️ The issue you reported can currently be resolved by subscribing to our Biz membership plan. Apply here: https://biz.candyhouse.co/biz/settings'
 }

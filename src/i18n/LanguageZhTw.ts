@@ -70,5 +70,5 @@ export const languageZhTw = {
   allTopics: '全部話題',
   jumpToLatestMsg: '跳轉到最新訊息',
   corporateUserOnly:
-    '⚠️ 目前僅供 Biz 付費用戶及本公司員工使用。使用次數受限的免費方案預計於 2026 年 3 月正式公開，敬請期待！'
+    '⚠️ 關於您所回報的問題，目前可透過使用我們的 Biz 會員方案來解決。申請請點此：https://biz.candyhouse.co/biz/settings'
 }
