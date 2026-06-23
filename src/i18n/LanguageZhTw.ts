@@ -63,12 +63,13 @@ export const languageZhTw = {
   refusal: '對話因拒絕而重設，請刪除你的提問',
   modelSetting: {
     jsonConfig: '模型配置',
-    typeError: '模型配置必須是一個物件（例如：{"key": "value"}），不能是陣列或基本類型。'
+    placeholder: '【範例】請連接網際網路。回答的創造性與語氣強度為普通。',
+    generateConfig: '產生並套用設定'
   },
   source: '源',
   topicCaption: '話題',
   allTopics: '全部話題',
   jumpToLatestMsg: '跳轉到最新訊息',
   corporateUserOnly:
-    '⚠️ 目前僅供 Biz 付費用戶及本公司員工使用。使用次數受限的免費方案預計於 2026 年 3 月正式公開，敬請期待！'
+    '⚠️ 抱歉，請訂閱我們的會員方案以繼續使用。[訂閱連結](https://biz.candyhouse.co/biz/settings)'
 }

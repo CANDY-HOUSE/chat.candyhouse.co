@@ -63,13 +63,14 @@ export const languageEn = {
   refusal: 'The conversation was reset due to a rejection. Please delete your question.',
   modelSetting: {
     jsonConfig: 'Model Configuration',
-    typeError:
-      'Model configuration must be an object (e.g., {"key": "value"}). Arrays or primitive types are not allowed.'
+    placeholder:
+      'Example: Please connect to the Internet. The response creativity and tone are set to normal.',
+    generateConfig: 'Generate and Apply Config'
   },
   source: 'source',
   topicCaption: 'Topic',
   allTopics: 'All Topics',
   jumpToLatestMsg: 'Jump to latest message',
   corporateUserOnly:
-    '⚠️ Currently, only available to Biz plan subscribers and our employees. A free plan with limited usage will be publicly available in March 2026. Stay tuned!'
+    '⚠️ Sorry, please subscribe to our membership plan to continue using the service. [Subscription link](https://biz.candyhouse.co/biz/settings)'
 }

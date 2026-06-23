@@ -63,12 +63,13 @@ export const languageZh = {
   refusal: '对话因拒绝而重置，请删除你的提问',
   modelSetting: {
     jsonConfig: '模型配置',
-    typeError: '模型配置必须是一个对象（例如：{"key": "value"}），不能是数组或基本类型。'
+    placeholder: '【示例】请连接互联网。回答的创造性和语气强度为普通。',
+    generateConfig: '生成并应用设置'
   },
   source: '源',
   topicCaption: '话题',
   allTopics: '全部话题',
   jumpToLatestMsg: '跳转到最新消息',
   corporateUserOnly:
-    '⚠️ 目前僅供 Biz 付費用戶及本公司員工使用。使用次數受限的免費方案預計於 2026 年 3 月正式公開，敬請期待！'
+    '⚠️ 抱歉，请订阅我们的会员继续使用。[订阅链接](https://biz.candyhouse.co/biz/settings)'
 }

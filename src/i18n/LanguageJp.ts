@@ -65,13 +65,14 @@ export const languageJa = {
   refusal: '拒否により会話がリセットされました。質問を削除してください',
   modelSetting: {
     jsonConfig: 'モデル設定',
-    typeError:
-      'モデル設定はオブジェクトである必要があります（例：{"key": "value"}）。配列やプリミティブ型は使用できません。'
+    placeholder:
+      'モデル設定はオブジェクトである必要があります（例：{"key": "value"}）。配列やプリミティブ型は使用できません。',
+    generateConfig: 'Configを生成して適用'
   },
   source: 'ソース',
   topicCaption: 'トピック',
   allTopics: 'すべてのトピック',
   jumpToLatestMsg: '最新のメッセージへ移動',
   corporateUserOnly:
-    '⚠️ 現在は、biz有料プランのお客様および弊社社員のみご利用いただけます。利用回数制限付きの無料プランは、2026年3月に一般公開予定です。ぜひご期待くださいませ。'
+    '⚠️ 申し訳ございません。引き続きご利用いただくには、弊社の会員プランへのご登録をお願いいたします。[お申し込みはこちら](https://biz.candyhouse.co/biz/settings)'
 }

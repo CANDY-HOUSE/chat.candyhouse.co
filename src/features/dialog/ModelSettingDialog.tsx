@@ -163,7 +163,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
           variant="outlined"
           value={userNL}
           label={t('modelSetting.jsonConfig')}
-          placeholder="【例】インターネットに接続してください。回答の創造性・温度感は普通。"
+          placeholder={t('modelSetting.placeholder')}
           slotProps={{
             inputLabel: { shrink: true },
             formHelperText: { sx: { fontSize: '0.65rem' } },
@@ -190,7 +190,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
                     onClick={handleConfigGen}
                     loading={loading}
                   >
-                    Configを生成して適用
+                    {t('modelSetting.generateConfig')}
                   </Button>
                 </InputAdornment>
               )
