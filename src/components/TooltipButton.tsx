@@ -1,27 +1,31 @@
 import { IconButton, Tooltip } from '@mui/material'
-import React from 'react'
+import type { IconButtonProps } from '@mui/material/IconButton'
+import type { TooltipProps } from '@mui/material/Tooltip'
+import type { ReactNode } from 'react'
 
-interface Props {
-  onClick: (arg: string) => void
-  tooltip: string
-  icon: React.ReactNode
-  disabled?: boolean
-  sx?: object
+interface Props extends Omit<IconButtonProps, 'children' | 'onClick'> {
+  onClick?: (arg: string | ReactNode) => void
+  tooltip: TooltipProps['title']
+  icon: ReactNode
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title'>
 }
 
-export const TooltipButton = (props: Props) => {
+export const TooltipButton = ({
+  tooltip,
+  icon,
+  onClick,
+  tooltipProps,
+  ...iconButtonProps
+}: Props) => {
   return (
-    <Tooltip title={props.tooltip} arrow>
+    <Tooltip arrow {...tooltipProps} title={tooltip}>
       <IconButton
-        sx={props.sx}
-        disabled={props.disabled}
+        {...iconButtonProps}
         onClick={() => {
-          if (props.onClick) {
-            props.onClick(props.tooltip)
-          }
+          onClick?.(tooltip)
         }}
       >
-        {props.icon}
+        {icon}
       </IconButton>
     </Tooltip>
   )

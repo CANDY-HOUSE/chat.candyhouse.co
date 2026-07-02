@@ -66,7 +66,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
     if (words) parts.push(`${t('wordCount')}: ${words}`)
     if (tokens) parts.push(`${t('outputTokens')}: ${tokens}`)
     if (totalTokens) parts.push(`${t('totalTokens')}: ${totalTokens}`)
-    if (model) parts.push(`${t('model')}: ${model}`)
+    if (model) parts.push(`${t('model.title')}: ${model}`)
     if (createdAt) parts.push(`${t('time')}: ${utils.utcToReadable(createdAt)}`)
 
     return parts.join(', ')

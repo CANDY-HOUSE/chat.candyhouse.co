@@ -4,10 +4,13 @@ import { useMediaQueryContext } from '@/context/MediaQueryContext'
 import SettingDialog from '@/features/dialog/SettingDialog'
 import { useCommandK } from '@/hooks/useCommandK'
 import { useConversation } from '@/hooks/useConversation'
+import { useModel } from '@/hooks/useModel'
 import {
   activeModelSelectAtom,
   activeTopicIdAtom,
+  isOwnerAtom,
   isShowSideBarAtom,
+  previewModelSelectAtom,
   sideBarWidthAtom,
   switchDialog,
   switchToast,
@@ -23,7 +26,8 @@ import { Level } from '@constants'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import SearchIcon from '@mui/icons-material/Search'
 import SettingsIcon from '@mui/icons-material/Settings'
-import { Box, Stack } from '@mui/material'
+import UpdateIcon from '@mui/icons-material/Update'
+import { Box, Stack, Typography } from '@mui/material'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import React, { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -39,10 +43,14 @@ const Sidebar = () => {
   const sideBarW = useAtomValue(sideBarWidthAtom)
   const version = useAtomValue(versionInfo)
   const user = useAtomValue(userAtom)
+  const isOwner = useAtomValue(isOwnerAtom)
+  const previewModelSelect = useAtomValue(previewModelSelectAtom)
   const [topics, setTopics] = useAtom(topicsAtom)
   const setActiveTopicId = useSetAtom(activeTopicIdAtom)
   const { setConversations } = useConversation()
+  const { promoteModel } = useModel()
   const [loading, setLoading] = useState(true)
+  const [promoteLoading, setPromoteLoading] = useState(false)
   const sideBarWidth = isMobile ? UI_CONSTANTS.mobileSideBarWidth : sideBarW
 
   const topicListRef = useRef<TopicListRef>(null)
@@ -50,6 +58,20 @@ const Sidebar = () => {
   const newChatDisabled = useMemo(() => {
     return !user?.isLogin && topics.length >= 1
   }, [topics, user?.isLogin])
+  const promoteInfo = useMemo(() => {
+    if (previewModelSelect.length < 1) return null
+
+    return (
+      <React.Fragment>
+        <Typography variant="body1">{t('model.promote')}：</Typography>
+        {previewModelSelect.map((model) => (
+          <Typography variant="body2" key={model.modelName}>
+            {model.modelName}
+          </Typography>
+        ))}
+      </React.Fragment>
+    )
+  }, [previewModelSelect])
 
   const actionsData = [
     {
@@ -134,6 +156,20 @@ const Sidebar = () => {
     }
 
     setLoading(false)
+  }
+
+  // 升级模型
+  const handlePromoteModel = async () => {
+    if (!user?.isLogin || promoteLoading) return
+
+    setPromoteLoading(true)
+    const result = await promoteModel(user.email)
+    if (result) {
+      switchToast({ visible: true, message: t('common.upgradeSuccess'), level: Level.success })
+    } else {
+      switchToast({ visible: true, message: t('common.upgradeFailed'), level: Level.error })
+    }
+    setPromoteLoading(false)
   }
 
   useEffect(() => {
@@ -245,6 +281,15 @@ const Sidebar = () => {
               tooltip={t('set')}
               icon={<SettingsIcon sx={{ fontSize: 'var(--icon-size-small)' }} />}
             ></TooltipButton>
+            {isOwner && promoteInfo && (
+              <TooltipButton
+                loading={promoteLoading}
+                disabled={previewModelSelect.length < 1}
+                tooltip={promoteInfo}
+                onClick={handlePromoteModel}
+                icon={<UpdateIcon sx={{ fontSize: 'var(--icon-size-small)' }} />}
+              ></TooltipButton>
+            )}
           </Stack>
         </DataList>
       </Box>

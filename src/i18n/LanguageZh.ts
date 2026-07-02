@@ -1,4 +1,10 @@
 export const languageZh = {
+  common: {
+    upgradeSuccess: '升级成功',
+    upgradeFailed: '升级失败',
+    cancel: '取消',
+    save: '保存'
+  },
   noResult: '暂无结果',
   openFile: '打开文件',
   set: '设置',
@@ -11,7 +17,6 @@ export const languageZh = {
   exportChat: '导出对话记录',
   importChat: '导入对话记录',
   fontSize: '字体大小',
-  model: '模型',
   confirmationCode: '确认码',
   emailAddress: '电子邮箱地址',
   termsofuse: '使用条款',
@@ -33,14 +38,12 @@ export const languageZh = {
   copyFailed: '复制失败',
   DeleteChatHistory: '清空聊天记录',
   DelFail: '删除失败',
-  createFail: '创建失敗',
+  createFail: '创建失败',
   SubmissionFail: '提交失败',
   noOpenModel: '抱歉你没有开启模型，请至少开启一个模型以上',
   authCodeError: '验证码错误请重新输入',
   fileError: '你上传的文件太大，目前仅支持9M以下文件',
   ImportFailed: '导入失败',
-  cancel: '取消',
-  save: '保存',
   wordCount: '字数',
   outputTokens: '输出 Token 数',
   totalTokens: 'Token 总数',
@@ -71,5 +74,9 @@ export const languageZh = {
   allTopics: '全部话题',
   jumpToLatestMsg: '跳转到最新消息',
   corporateUserOnly:
-    '⚠️ 抱歉，请订阅我们的会员继续使用。[订阅链接](https://biz.candyhouse.co/biz/settings)'
+    '⚠️ 抱歉，请订阅我们的会员继续使用。[订阅链接](https://biz.candyhouse.co/biz/settings)',
+  model: {
+    title: '模型',
+    promote: '可升级模型'
+  }
 }

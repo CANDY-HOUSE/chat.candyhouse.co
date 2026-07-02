@@ -1,4 +1,10 @@
 export const languageJa = {
+  common: {
+    upgradeSuccess: 'アップグレードに成功しました',
+    upgradeFailed: 'アップグレードに失敗しました',
+    cancel: 'キャンセル',
+    save: '保存'
+  },
   noResult: '結果が見つかりませんでした',
   openFile: 'ファイルを開く',
   set: '設定',
@@ -11,7 +17,6 @@ export const languageJa = {
   exportChat: '会話履歴をエクスポート',
   importChat: '会話履歴をインポート',
   fontSize: 'フォントサイズ',
-  model: 'モデル',
   confirmationCode: '確認コード',
   emailAddress: 'メールアドレス',
   termsofuse: '利用規約',
@@ -40,8 +45,6 @@ export const languageJa = {
   authCodeError: '認証コードが間違っています。再入力してください',
   fileError: 'アップロードされたファイルが大きすぎます。現在9MB以下のファイルのみ対応しています',
   ImportFailed: 'インポート失敗',
-  cancel: 'キャンセル',
-  save: '保存',
   wordCount: '文字数',
   outputTokens: '出力トークン数',
   totalTokens: 'トークン総数',
@@ -74,5 +77,9 @@ export const languageJa = {
   allTopics: 'すべてのトピック',
   jumpToLatestMsg: '最新のメッセージへ移動',
   corporateUserOnly:
-    '⚠️ 申し訳ございません。引き続きご利用いただくには、弊社の会員プランへのご登録をお願いいたします。[お申し込みはこちら](https://biz.candyhouse.co/biz/settings)'
+    '⚠️ 申し訳ございません。引き続きご利用いただくには、弊社の会員プランへのご登録をお願いいたします。[お申し込みはこちら](https://biz.candyhouse.co/biz/settings)',
+  model: {
+    title: 'モデル',
+    promote: 'アップグレード可能なモデル'
+  }
 }

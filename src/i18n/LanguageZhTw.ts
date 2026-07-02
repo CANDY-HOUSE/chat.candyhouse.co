@@ -1,4 +1,10 @@
 export const languageZhTw = {
+  common: {
+    upgradeSuccess: '升級成功',
+    upgradeFailed: '升級失敗',
+    cancel: '取消',
+    save: '儲存'
+  },
   noResult: '暫無結果',
   openFile: '開啟檔案',
   set: '設定',
@@ -11,7 +17,6 @@ export const languageZhTw = {
   exportChat: '匯出對話記錄',
   importChat: '匯入對話記錄',
   fontSize: '字體大小',
-  model: '模型',
   confirmationCode: '確認碼',
   emailAddress: '電子郵件地址',
   termsofuse: '使用條款',
@@ -39,8 +44,6 @@ export const languageZhTw = {
   authCodeError: '驗證碼錯誤請重新輸入',
   fileError: '你上傳的檔案太大，目前僅支援9M以下檔案',
   ImportFailed: '匯入失敗',
-  cancel: '取消',
-  save: '儲存',
   wordCount: '字數',
   outputTokens: '輸出 Token 數',
   totalTokens: 'Token 總數',
@@ -71,5 +74,9 @@ export const languageZhTw = {
   allTopics: '全部話題',
   jumpToLatestMsg: '跳轉到最新訊息',
   corporateUserOnly:
-    '⚠️ 抱歉，請訂閱我們的會員方案以繼續使用。[訂閱連結](https://biz.candyhouse.co/biz/settings)'
+    '⚠️ 抱歉，請訂閱我們的會員方案以繼續使用。[訂閱連結](https://biz.candyhouse.co/biz/settings)',
+  model: {
+    title: '模型',
+    promote: '可升級模型'
+  }
 }

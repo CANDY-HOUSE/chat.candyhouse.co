@@ -1,4 +1,10 @@
 export const languageEn = {
+  common: {
+    upgradeSuccess: 'Upgrade successful',
+    upgradeFailed: 'Upgrade failed',
+    cancel: 'Cancel',
+    save: 'Save'
+  },
   noResult: 'No results found',
   openFile: 'Open File',
   set: 'Settings',
@@ -11,7 +17,6 @@ export const languageEn = {
   exportChat: 'Export history',
   importChat: 'Import history',
   fontSize: 'Font Size',
-  model: 'Model',
   confirmationCode: 'Confirmation Code',
   emailAddress: 'Email Address',
   termsofuse: 'Terms of Use',
@@ -39,8 +44,6 @@ export const languageEn = {
   authCodeError: 'Incorrect verification code, please re-enter',
   fileError: 'The file you uploaded is too large. Currently only files under 9MB are supported',
   ImportFailed: 'Import Failed',
-  cancel: 'Cancel',
-  save: 'Save',
   wordCount: 'Word Count',
   outputTokens: 'Output Token Count',
   totalTokens: 'Total Token Count',
@@ -72,5 +75,9 @@ export const languageEn = {
   allTopics: 'All Topics',
   jumpToLatestMsg: 'Jump to latest message',
   corporateUserOnly:
-    '⚠️ Sorry, please subscribe to our membership plan to continue using the service. [Subscription link](https://biz.candyhouse.co/biz/settings)'
+    '⚠️ Sorry, please subscribe to our membership plan to continue using the service. [Subscription link](https://biz.candyhouse.co/biz/settings)',
+  model: {
+    title: 'Model',
+    promote: 'Upgradeable Models'
+  }
 }

@@ -13,6 +13,9 @@ export interface IModel {
   priority?: number
   replacedBy?: string
   jsonConfigRaw?: string // 原始 JSON 字符串，需要删除
+  supersedes?: string // PREVIEW 行回指其将替代的基线 modelName（promote 据此定位旧行）
+  updatedBy?: string // 最后更新者："scout"（Scout 写 PREVIEW）或 owner 邮箱（人工 promote）
+  updatedAt?: string
 }
 
 export interface IModelInfo extends IModel {

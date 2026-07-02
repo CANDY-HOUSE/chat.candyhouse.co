@@ -61,14 +61,14 @@ const EditorPanelInner: React.FC<Props> = ({ contentBlock, submitFn, embed = fal
               cancelRef.current = element
             }}
           >
-            {t('cancel')}
+            {t('common.cancel')}
           </Button>
           <Button
             ref={(element) => {
               saveRef.current = element
             }}
           >
-            {t('save')}
+            {t('common.save')}
           </Button>
         </Stack>
       )}

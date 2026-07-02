@@ -34,6 +34,7 @@ const s3Config = {
 export const BIZ_URL = 'https://biz.candyhouse.co' // 订阅跳转链接
 export const MAX_FILE_SIZE = 9 * 1024 * 1024 // 9MB in bytes
 export const PREVIEW_IMG_CLASS = 'user-upload-img' // 可预览图片的类名
+export const OWNER_EMAILS = ['zenghouqi@cn.candyhouse.co', 'jerming+1@candyhouse.co'] // 模型升级管理员邮箱
 
 export const config = {
   apiPaths,

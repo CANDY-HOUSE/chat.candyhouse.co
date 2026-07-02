@@ -240,7 +240,7 @@ const SearchInput: React.FC<Props> = ({ topicListRef }) => {
                     fontSize: '12px'
                   }}
                 >
-                  {`${t('model')}: ${message.model}`} &nbsp;
+                  {`${t('model.title')}: ${message.model}`} &nbsp;
                   {`${t('time')}: ${utils.utcToReadable(message.createdAt)}`}
                 </Typography>
               </Box>

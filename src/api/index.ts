@@ -532,3 +532,16 @@ export const apiPostModelConfig = withLoading(
     enableLoading: false
   }
 )
+
+// 升级模型（PREVIEW → ACTIVE）
+export const apiModelPromote = withLoading(async (email: string) => {
+  try {
+    const result = await api.post<{ action: string; promoted: number; writes: number }>(
+      `${config.apiPaths.model}/promote?action=putPromote`,
+      { email }
+    )
+    return result.data
+  } catch {
+    return null
+  }
+})
