@@ -391,11 +391,12 @@ export const apiStreamChat = withLoading(
     abortController?: AbortController,
     onChunk?: (chunk: UnifiedResponse<V>) => Promise<void>
   ) => {
-    const { email, ...opts } = options
     const url = 'https://m3mkslh7a747nrrkjjje57bwh40qstqg.lambda-url.ap-northeast-1.on.aws/'
+    const { tokens } = await fetchAuthSession()
+    const idToken = tokens?.idToken?.toString()
     const res = await lambdaUrlInvoke(
       url,
-      { model, options: opts, email },
+      { model, options, idToken },
       { signal: abortController?.signal }
     )
 

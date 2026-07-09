@@ -21,9 +21,6 @@ yarn-error.log*
 .clinic/
 .continue/
 
-# Environment files
-!.env.example
-
 .secret-*
 **.sample
 
@@ -50,3 +47,5 @@ amplify/team-provider-info.json
 awsconfiguration.json
 amplifyconfiguration.json
 #amplify-do-not-edit-end
+
+*-workspace

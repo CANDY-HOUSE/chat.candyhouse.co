@@ -242,7 +242,6 @@ export const useAi = () => {
 
     const options = {
       messages,
-      email: user?.email,
       ...settings,
       providerParams: { [modelProvider]: { ...providerOptions, tools } }
     }
