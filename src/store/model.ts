@@ -3,8 +3,7 @@ import { ModelStatus } from '@constants'
 import { atom, type PrimitiveAtom } from 'jotai'
 import { atomFamily } from 'jotai-family'
 import { splitAtom } from 'jotai/utils'
-import { OWNER_EMAILS } from '../config'
-import { store, userAtom } from './index'
+import { store } from './index'
 
 // 话题列表
 export const topicsAtom = atom<Array<ITopics>>([])
@@ -102,10 +101,9 @@ export const previewModelSelectAtom = atom((get) => {
   return modelSelect.filter((model) => model.status === ModelStatus.PREVIEW)
 })
 
-// 是否是管理员
-export const isOwnerAtom = atom((get) => {
-  const user = get(userAtom)
-  return user?.isLogin && OWNER_EMAILS.includes(user?.email)
+export const isOwnerAtom = atom(() => {
+  // const user = get(userAtom)
+  return false
 })
 
 export const resetModelData = () => {
