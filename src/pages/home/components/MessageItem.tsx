@@ -2,6 +2,7 @@ import { AiAvatarIcon } from '@/components/AiAvatarIcon'
 import { LoadingDots } from '@/components/LoadingDots'
 import EditorPanelInner from '@/features/editor/EditorPanelInner'
 import { AIMessage } from '@/features/messages/AIMessage'
+import { Markdown } from '@/features/messages/Markdown'
 import { UserMessage } from '@/features/messages/UserMessage'
 import { useConversation } from '@/hooks/useConversation'
 import { useMessage } from '@/hooks/useMessage'
@@ -127,16 +128,13 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
             submitFn={handleEditorSubmit}
           />
         )
-      case state === MessageState.error:
-        return (
-          <Typography
-            variant="body1"
-            color="error"
-            sx={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-          >
-            {content && content.length > 0 ? content[0]?.content : t('noAvailableInformation')}
-          </Typography>
-        )
+      case state === MessageState.error: {
+        const errorContent = content
+          .filter((item) => item.type === 'text')
+          .map((item) => item.content)
+          .join('\n')
+        return <Markdown style={{ color: '#cc0000' }}>{errorContent}</Markdown>
+      }
       case role === 'user':
         return <UserMessage className="ql-container ql-snow" blocks={content} />
       default:

@@ -20,6 +20,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
+import type { Node as UnistNode } from 'unist'
 import { visit } from 'unist-util-visit'
 
 import 'katex/dist/katex.min.css'
@@ -30,6 +31,7 @@ interface MarkdownProps {
   hiddenCodeCopyButton?: boolean
   isThinking?: boolean
   allowedVideoNonces?: string[]
+  style?: React.CSSProperties
 }
 
 // 仅允许 video/source/track 以及必要属性
@@ -71,11 +73,14 @@ export const Markdown = ({
   children,
   hiddenCodeCopyButton = false,
   isThinking = false,
-  allowedVideoNonces = []
+  allowedVideoNonces = [],
+  style
 }: MarkdownProps) => {
   const [theme] = useAtom(themeAtom)
   const globalFontSize = useAtomValue(fontSizeAtom)
   const fontSize = isThinking ? 14 : globalFontSize
+  const textColor =
+    style?.color || (isThinking ? theme.palette.text.secondary : theme.palette.text.primary)
 
   const rehypeKatexOptions = {
     throwOnError: false,
@@ -92,159 +97,164 @@ export const Markdown = ({
   const normalizedChildren = React.useMemo(() => normalizeMathDelimiters(children), [children])
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[
-        [remarkAllowSpecificVideo, { nonces: allowedVideoNonces }],
-        remarkGfm,
-        remarkMath,
-        remarkBreaks
-      ]}
-      rehypePlugins={[
-        rehypeRaw,
-        [rehypeSanitize, sanitizeSchema],
-        [rehypeKatex, rehypeKatexOptions]
-      ]}
-      components={{
-        code: ({ className, children, ...props }) => {
-          return (
-            <CodeBlock
-              className={className || ''}
-              hiddenCodeCopyButton={hiddenCodeCopyButton}
-              children={children}
-              fontSize={fontSize}
-              {...props}
-            />
-          )
-        },
-        ...['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'].reduce(
-          (acc, tag) => ({
-            ...acc,
-            [tag]: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => {
-              const tagMap = {
-                p: 'body1',
-                h1: 'h1',
-                h2: 'h2',
-                h3: 'h3',
-                h4: 'h4',
-                h5: 'h5',
-                h6: 'h6',
-                li: 'body1'
-              }
-              return (
-                <Typography
-                  variant={tagMap[tag as keyof typeof tagMap] as TypographyProps['variant']}
-                  component={tag === 'li' ? 'span' : 'div'}
-                  {...props}
-                  sx={{
-                    color: isThinking ? theme.palette.text.secondary : theme.palette.text.primary
-                  }}
-                >
-                  {children}
-                </Typography>
-              )
-            }
-          }),
-          {}
-        ),
-        a: ({ children, href }) => {
-          return (
-            <Link href={href} underline="always" target="_blank" rel="noreferrer">
-              {children}
-            </Link>
-          )
-        },
-        img: ({ node, ...props }) => {
-          return (
-            <PhotoProvider>
-              <PhotoView src={props.src}>
-                <div className="img-parent">
-                  <img className="img-perfect-fit" src={props.src} alt={props.alt} />
-                </div>
-              </PhotoView>
-            </PhotoProvider>
-          )
-        },
-        video: ({ node, ...props }) => {
-          let { src, autoPlay = false, controls = false, loop = false, muted = true } = props
-          const rawProgress =
-            (node?.properties as any)?.dataProgress ?? (node?.properties as any)?.['data-progress']
-          const dataProgress = parseFloat(rawProgress) || 0
-          const rawAspectRatio =
-            (node?.properties as any)?.dataAspectRatio ??
-            (node?.properties as any)?.['data-aspect-ratio']
-
-          return (
-            <div
-              className="video-parent"
-              style={{
-                aspectRatio: rawAspectRatio || '9/16'
-              }}
-            >
-              {dataProgress < 100 && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'var(--grey-50, #fafafa)',
-                    zIndex: 10,
-                    pointerEvents: 'none'
-                  }}
-                >
-                  <CircularProgress
-                    enableTrackSlot
-                    variant={dataProgress > 0 ? 'determinate' : 'indeterminate'}
-                    value={dataProgress}
-                    size={50}
+    <Box style={style}>
+      <ReactMarkdown
+        remarkPlugins={[
+          [remarkAllowSpecificVideo, { nonces: allowedVideoNonces }],
+          remarkGfm,
+          remarkMath,
+          remarkBreaks
+        ]}
+        rehypePlugins={[
+          rehypeRaw,
+          [rehypeSanitize, sanitizeSchema],
+          [rehypeKatex, rehypeKatexOptions]
+        ]}
+        components={{
+          code: ({ className, children, ...props }) => {
+            return (
+              <CodeBlock
+                className={className || ''}
+                hiddenCodeCopyButton={hiddenCodeCopyButton}
+                children={children}
+                fontSize={fontSize}
+                {...props}
+              />
+            )
+          },
+          ...['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'].reduce(
+            (acc, tag) => ({
+              ...acc,
+              [tag]: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => {
+                const tagMap = {
+                  p: 'body1',
+                  h1: 'h1',
+                  h2: 'h2',
+                  h3: 'h3',
+                  h4: 'h4',
+                  h5: 'h5',
+                  h6: 'h6',
+                  li: 'body1'
+                }
+                return (
+                  <Typography
+                    variant={tagMap[tag as keyof typeof tagMap] as TypographyProps['variant']}
+                    component={tag === 'li' ? 'span' : 'div'}
+                    {...props}
                     sx={{
-                      pointerEvents: 'auto',
-                      color: 'var(--text-secondary)'
+                      color: textColor
                     }}
-                  />
+                  >
+                    {children}
+                  </Typography>
+                )
+              }
+            }),
+            {}
+          ),
+          a: ({ children, href }) => {
+            return (
+              <Link href={href} underline="always" target="_blank" rel="noreferrer">
+                {children}
+              </Link>
+            )
+          },
+          img: ({ node, ...props }) => {
+            return (
+              <PhotoProvider>
+                <PhotoView src={props.src}>
+                  <div className="img-parent">
+                    <img className="img-perfect-fit" src={props.src} alt={props.alt} />
+                  </div>
+                </PhotoView>
+              </PhotoProvider>
+            )
+          },
+          video: ({ node, ...props }) => {
+            const { src, autoPlay = false, controls = false, loop = false, muted = true } = props
+            const nodeProperties = node?.properties as Record<string, unknown> | undefined
+            const rawProgress = nodeProperties?.dataProgress ?? nodeProperties?.['data-progress']
+            const dataProgress = Number.parseFloat(String(rawProgress ?? '')) || 0
+            const rawAspectRatio =
+              nodeProperties?.dataAspectRatio ?? nodeProperties?.['data-aspect-ratio']
+            const aspectRatio =
+              typeof rawAspectRatio === 'string' || typeof rawAspectRatio === 'number'
+                ? rawAspectRatio
+                : '9/16'
+
+            return (
+              <div
+                className="video-parent"
+                style={{
+                  aspectRatio
+                }}
+              >
+                {dataProgress < 100 && (
                   <Box
                     sx={{
                       position: 'absolute',
                       inset: 0,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      backgroundColor: 'var(--grey-50, #fafafa)',
+                      zIndex: 10,
+                      pointerEvents: 'none'
                     }}
                   >
-                    <Typography
-                      variant="body2"
-                      sx={{ color: 'var(--text-secondary)' }}
-                    >{`${Math.round(dataProgress)}%`}</Typography>
+                    <CircularProgress
+                      enableTrackSlot
+                      variant={dataProgress > 0 ? 'determinate' : 'indeterminate'}
+                      value={dataProgress}
+                      size={50}
+                      sx={{
+                        pointerEvents: 'auto',
+                        color: 'var(--text-secondary)'
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'var(--text-secondary)' }}
+                      >{`${Math.round(dataProgress)}%`}</Typography>
+                    </Box>
                   </Box>
-                </Box>
-              )}
-              <video
-                autoPlay={autoPlay}
-                controls={controls}
-                muted={muted}
-                loop={loop}
-                className="video-perfect-fit"
-                onMouseEnter={(e) => {
-                  const video = e.currentTarget
-                  video.muted = false
-                }}
-                onMouseLeave={(e) => {
-                  const video = e.currentTarget
-                  video.muted = true
-                }}
-              >
-                <source src={src} type="video/mp4" />
-                <source src={src} type="video/webm" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          )
-        }
-      }}
-    >
-      {normalizedChildren}
-    </ReactMarkdown>
+                )}
+                <video
+                  autoPlay={autoPlay}
+                  controls={controls}
+                  muted={muted}
+                  loop={loop}
+                  className="video-perfect-fit"
+                  onMouseEnter={(e) => {
+                    const video = e.currentTarget
+                    video.muted = false
+                  }}
+                  onMouseLeave={(e) => {
+                    const video = e.currentTarget
+                    video.muted = true
+                  }}
+                >
+                  <source src={src} type="video/mp4" />
+                  <source src={src} type="video/webm" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )
+          }
+        }}
+      >
+        {normalizedChildren}
+      </ReactMarkdown>
+    </Box>
   )
 }
 
@@ -383,24 +393,36 @@ function normalizeMathDelimiters(input: string): string {
 }
 
 type AllowVideoOptions = { nonces?: string[] }
+type MarkdownNode = UnistNode & { value?: unknown }
+type MarkdownHtmlNode = MarkdownNode & { type: 'html' }
+type MarkdownParentNode = UnistNode & { children: MarkdownNode[] }
 
 const DATA_PROGRESS_PRESENT_RE = /\bdata-progress\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)\b/i
+
+function isHtmlNode(node: UnistNode): node is MarkdownHtmlNode {
+  return node.type === 'html'
+}
+
+function hasNodeChildren(node: unknown): node is MarkdownParentNode {
+  return Boolean(
+    node && typeof node === 'object' && Array.isArray((node as { children?: unknown }).children)
+  )
+}
 
 // 只放行带有 data-md-allow=nonce 的 <video>，其它所有 HTML 统统当作文本
 function remarkAllowSpecificVideo(options: AllowVideoOptions = {}) {
   const { nonces = [] } = options
 
-  return function transformer(tree: any) {
-    if (!tree || typeof tree !== 'object' || !('type' in tree)) return
-
+  return function transformer(tree: UnistNode) {
     try {
-      visit(tree, 'html', (node, index, parent) => {
+      visit(tree, isHtmlNode, (node, index, parent) => {
         const raw = String(node?.value ?? '')
+        const parentNode: unknown = parent
 
         // 非 <video>：直接转为纯文本
         if (!/<\s*video\b/i.test(raw)) {
-          if (parent && Array.isArray(parent.children) && typeof index === 'number') {
-            parent.children[index] = { type: 'text', value: raw }
+          if (hasNodeChildren(parentNode) && typeof index === 'number') {
+            parentNode.children[index] = { type: 'text', value: raw }
           }
           return
         }
@@ -414,8 +436,8 @@ function remarkAllowSpecificVideo(options: AllowVideoOptions = {}) {
         const hasLegacyProgress = DATA_PROGRESS_PRESENT_RE.test(raw)
         const allowed = nonceAllowed || hasLegacyProgress
 
-        if (!allowed && parent && Array.isArray(parent.children) && typeof index === 'number') {
-          parent.children[index] = { type: 'text', value: raw }
+        if (!allowed && hasNodeChildren(parentNode) && typeof index === 'number') {
+          parentNode.children[index] = { type: 'text', value: raw }
         }
       })
     } catch {
