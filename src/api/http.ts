@@ -1,13 +1,7 @@
 import { logger } from '@utils'
-import { del, get, patch, post, put } from 'aws-amplify/api'
+import { getIdToken } from './session'
 
-// REST 请求体类型（DocumentType | FormData | undefined）
-type RestBody = NonNullable<Parameters<typeof post>[0]['options']>['body']
-
-const restOps = { get, post, put, patch, del }
-
-// 基础类型定义
-type Method = 'get' | 'post' | 'put' | 'patch' | 'del'
+type Method = 'get' | 'post' | 'put' | 'patch' | 'delete'
 
 interface ApiOptions {
   params?: Record<string, unknown>
@@ -21,6 +15,21 @@ export interface ApiResponse<T = unknown> {
   success: boolean
 }
 
+const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string
+const TIMEOUT_MS = 30000
+
+function buildQueryString(params?: Record<string, unknown>): string {
+  if (!params) return ''
+  const usp = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) {
+      usp.append(key, String(value))
+    }
+  }
+  const qs = usp.toString()
+  return qs ? `?${qs}` : ''
+}
+
 // 核心请求函数
 async function request<T = unknown>(
   method: Method,
@@ -29,35 +38,46 @@ async function request<T = unknown>(
   options?: ApiOptions
 ): Promise<ApiResponse<T>> {
   const { params, retry = 0 } = options || {}
-
-  const apiName = process.env.REACT_APP_API_NAME as string
-
-  // 将查询参数统一转换为字符串
-  const queryParams = params
-    ? Object.entries(params).reduce<Record<string, string>>((acc, [key, value]) => {
-        if (value !== undefined && value !== null) {
-          acc[key] = String(value)
-        }
-        return acc
-      }, {})
-    : undefined
-
-  // 构建请求配置
-  const restOptions = {
-    timeout: 30000,
-    ...(queryParams && Object.keys(queryParams).length > 0 ? { queryParams } : {}),
-    ...(method !== 'get' && data !== undefined ? { body: data as RestBody } : {})
-  }
+  const url = `${API_ENDPOINT}${path}${buildQueryString(params)}`
+  const hasBody = method !== 'get' && data !== undefined
 
   let lastError: unknown
 
   // 重试逻辑
   for (let i = 0; i <= retry; i++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
     try {
-      const { body } = await restOps[method]({ apiName, path, options: restOptions }).response
+      const idToken = await getIdToken()
+      if (!idToken) {
+        throw new Error('Not authenticated')
+      }
+
+      const headers: Record<string, string> = { Authorization: idToken }
+      if (hasBody) headers['Content-Type'] = 'application/json'
+
+      const res = await fetch(url, {
+        method: method.toUpperCase(),
+        headers,
+        ...(hasBody ? { body: JSON.stringify(data) } : {}),
+        signal: controller.signal
+      })
+
+      // fetch 不会因 4xx/5xx reject，需要显式判断（authorizer 401/403 返回 {message}）
+      if (!res.ok) {
+        const text = await res.text()
+        let message = text
+        try {
+          message = JSON.parse(text)?.message ?? text
+        } catch {
+          // 非 JSON 响应体，原样使用
+        }
+        throw new Error(message || `API error: ${path} (${res.status})`)
+      }
 
       // 统一处理响应
-      const response = (await body.json()) as unknown as ApiResponse<T>
+      const response = (await res.json()) as ApiResponse<T>
 
       if (response?.code && response.code !== 200) {
         throw new Error(response.message || `API error: ${path}`)
@@ -72,6 +92,8 @@ async function request<T = unknown>(
         await new Promise((r) => setTimeout(r, 1000))
         continue
       }
+    } finally {
+      clearTimeout(timer)
     }
   }
 
@@ -97,5 +119,5 @@ export const api = {
     request<T>('patch', path, data, options),
 
   delete: <T = unknown>(path: string, data?: unknown, options?: ApiOptions) =>
-    request<T>('del', path, data, options)
+    request<T>('delete', path, data, options)
 }

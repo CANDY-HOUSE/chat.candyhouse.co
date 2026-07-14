@@ -23,6 +23,7 @@ import {
 import i18n from '../i18n'
 import { hideLoading, showLoading } from '../store'
 import { api } from './http'
+import { getIdToken } from './session'
 
 interface LoadingOptions {
   enableLoading?: boolean
@@ -392,8 +393,7 @@ export const apiStreamChat = withLoading(
     onChunk?: (chunk: UnifiedResponse<V>) => Promise<void>
   ) => {
     const url = 'https://m3mkslh7a747nrrkjjje57bwh40qstqg.lambda-url.ap-northeast-1.on.aws/'
-    const { tokens } = await fetchAuthSession()
-    const idToken = tokens?.idToken?.toString()
+    const idToken = await getIdToken()
     const res = await lambdaUrlInvoke(
       url,
       { model, options, idToken },

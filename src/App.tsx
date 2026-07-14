@@ -26,14 +26,6 @@ Amplify.configure({
       allowGuestAccess: false
     }
   },
-  API: {
-    REST: {
-      [process.env.REACT_APP_API_NAME as string]: {
-        endpoint: process.env.REACT_APP_API_ENDPOINT as string,
-        region: process.env.REACT_APP_API_REGION as string
-      }
-    }
-  },
   Storage: {
     S3: {
       bucket: config.s3Config.aws_user_files_s3_bucket as string,
