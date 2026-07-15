@@ -6,6 +6,7 @@ type Method = 'get' | 'post' | 'put' | 'patch' | 'delete'
 interface ApiOptions {
   params?: Record<string, unknown>
   retry?: number
+  requireAuth?: boolean
 }
 
 export interface ApiResponse<T = unknown> {
@@ -37,7 +38,7 @@ async function request<T = unknown>(
   data?: unknown,
   options?: ApiOptions
 ): Promise<ApiResponse<T>> {
-  const { params, retry = 0 } = options || {}
+  const { params, retry = 0, requireAuth = true } = options || {}
   const url = `${API_ENDPOINT}${path}${buildQueryString(params)}`
   const hasBody = method !== 'get' && data !== undefined
 
@@ -49,12 +50,14 @@ async function request<T = unknown>(
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
     try {
-      const idToken = await getIdToken()
-      if (!idToken) {
-        throw new Error('Not authenticated')
+      const headers: Record<string, string> = {}
+      if (requireAuth) {
+        const idToken = await getIdToken()
+        if (!idToken) {
+          throw new Error('Not authenticated')
+        }
+        headers['Authorization'] = idToken
       }
-
-      const headers: Record<string, string> = { Authorization: idToken }
       if (hasBody) headers['Content-Type'] = 'application/json'
 
       const res = await fetch(url, {

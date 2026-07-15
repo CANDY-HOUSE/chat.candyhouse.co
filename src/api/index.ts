@@ -137,7 +137,8 @@ export const apiGetModelSelect = withLoading(
     try {
       const result = await api.get<{ items: Array<IModel>; count: number }>(
         `${config.apiPaths.select}/model`,
-        { queryType, ...param }
+        { queryType, ...param },
+        { requireAuth: false }
       )
       return result.data
     } catch {
@@ -493,7 +494,6 @@ async function lambdaUrlInvoke(
   }
 }
 
-// 根据自然语言生成模型配置
 export const apiPostModelConfig = withLoading(
   async (model: string, description: string, options: Record<string, unknown> = {}) => {
     try {
@@ -515,7 +515,6 @@ export const apiPostModelConfig = withLoading(
   }
 )
 
-// 升级模型（PREVIEW → ACTIVE）
 export const apiModelPromote = withLoading(async (email: string) => {
   try {
     const result = await api.post<{ action: string; promoted: number; writes: number }>(
