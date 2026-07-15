@@ -9,11 +9,9 @@ import type {
   ITopics
 } from '@/types/messagetypes'
 import { clearAllLocalStorage } from '@/utils'
-import { signRequest } from '@aws-amplify/core/internals/aws-client-utils'
 import { config } from '@config'
 import {
   confirmSignIn,
-  fetchAuthSession,
   fetchUserAttributes,
   getCurrentUser,
   signIn,
@@ -384,7 +382,6 @@ export const apiMessagesSearch = withLoading(
   }
 )
 
-// 流式聊天接口
 export const apiStreamChat = withLoading(
   async <V>(
     model: string | Array<string>,
@@ -392,7 +389,7 @@ export const apiStreamChat = withLoading(
     abortController?: AbortController,
     onChunk?: (chunk: UnifiedResponse<V>) => Promise<void>
   ) => {
-    const url = 'https://m3mkslh7a747nrrkjjje57bwh40qstqg.lambda-url.ap-northeast-1.on.aws/'
+    const url = process.env.REACT_APP_CHAT_ENDPOINT!
     const idToken = await getIdToken()
     const res = await lambdaUrlInvoke(
       url,
@@ -458,45 +455,29 @@ function parseMessage(msg: string) {
   return null
 }
 
+async function sha256Hex(body: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body))
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 async function lambdaUrlInvoke(
   url: string,
   params: Record<string, unknown>,
   options: Record<string, unknown> = {}
 ) {
   try {
-    const region = process.env.REACT_APP_API_REGION || 'ap-northeast-1'
-
     // 构建请求 body
     const requestBody = JSON.stringify(params)
-
-    // 获取临时 IAM 凭证
-    const { credentials } = await fetchAuthSession()
-    if (!credentials) {
-      throw new Error('No credentials')
-    }
-
-    // 使用 Amplify 内置的 SigV4 签名器（与 aws-amplify 版本锁步，无需额外签名库）
-    const signedRequest = signRequest(
-      {
-        url: new URL(url),
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: requestBody
-      },
-      {
-        credentials: {
-          accessKeyId: credentials.accessKeyId,
-          secretAccessKey: credentials.secretAccessKey,
-          sessionToken: credentials.sessionToken
-        },
-        signingRegion: region,
-        signingService: 'lambda'
-      }
-    )
+    const bodyHash = await sha256Hex(requestBody)
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: signedRequest.headers as HeadersInit,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-amz-content-sha256': bodyHash
+      },
       body: requestBody,
       ...options
     })
