@@ -133,14 +133,16 @@ const HomeRightPanel = () => {
     conversationsRef.current.forEach((conv, index) => {
       updateModelInfo(conv.id, { disable: index !== activeIndex })
     })
-  }, [activeIndex, isMobile, updateModelInfo])
+  }, [activeIndex, isMobile, updateModelInfo, conversations.length])
 
   // 监听是否展开会话列表
   useEffect(() => {
+    if (isMobile) return
+
     conversationsRef.current.forEach((conv, index) => {
-      updateModelInfo(conv.id, { disable: index !== expandedIndex && expandedIndex !== -1 })
+      updateModelInfo(conv.id, { disable: expandedIndex !== -1 && index !== expandedIndex })
     })
-  }, [expandedIndex, updateModelInfo])
+  }, [expandedIndex, isMobile, updateModelInfo, conversations.length])
 
   // 优化 swiper enable 判定
   useEffect(() => {
