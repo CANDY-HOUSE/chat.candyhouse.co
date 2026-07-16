@@ -6,6 +6,9 @@ export interface UnifiedResponse<V = string> {
   model: string
   value: V
   done: boolean
+  statusCode?: number
+  error?: string
+  errorCode?: string
   thoughtValue?: string
   finishReason?: string
   responseId?: string
@@ -22,7 +25,6 @@ export interface UnifiedResponse<V = string> {
     providerMetadata?: Record<string, unknown>
   }[]
   thoughtSignature?: string // chunk 对应的 part 真签名。仅 Gemini 3 text/reasoning block 会出现；
-  error?: string
 }
 
 // 统一的输入格式

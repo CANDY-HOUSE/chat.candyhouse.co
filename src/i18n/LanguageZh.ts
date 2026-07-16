@@ -74,7 +74,7 @@ export const languageZh = {
   allTopics: '全部话题',
   jumpToLatestMsg: '跳转到最新消息',
   corporateUserOnly:
-    '⚠️ 抱歉，请订阅我们的会员继续使用。[订阅链接](https://biz.candyhouse.co/biz/settings)',
+    '⚠️ 抱歉，请订阅我们的会员以继续使用。[订阅链接](https://biz.candyhouse.co/biz/settings)',
   model: {
     title: '模型',
     promote: '可升级模型'

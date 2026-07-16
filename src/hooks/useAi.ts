@@ -249,7 +249,13 @@ export const useAi = () => {
     // 请求模型回答
     await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
       if (data.error) {
-        throw new Error(data.error as string)
+        switch (data.statusCode) {
+          case 401:
+          case 403:
+            throw new Error(t('corporateUserOnly'))
+          default:
+            throw new Error(data.error)
+        }
       }
 
       // 处理 refusal
