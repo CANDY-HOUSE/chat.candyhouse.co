@@ -13,8 +13,8 @@ export const useModel = () => {
   }, [])
 
   // 升级模型（PREVIEW → ACTIVE）
-  const promoteModel = useCallback(async (email: string) => {
-    const result = await apiModelPromote(email)
+  const promoteModel = useCallback(async () => {
+    const result = await apiModelPromote()
     if (!result) return false
     const modelSelectRes = await apiGetModelSelect('all', { sortOrder: 'asc' })
     store.set(modelSelectAtom, modelSelectRes?.items || [])

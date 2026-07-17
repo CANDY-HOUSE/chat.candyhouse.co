@@ -101,11 +101,6 @@ export const previewModelSelectAtom = atom((get) => {
   return modelSelect.filter((model) => model.status === ModelStatus.PREVIEW)
 })
 
-export const isOwnerAtom = atom(() => {
-  // const user = get(userAtom)
-  return false
-})
-
 export const resetModelData = () => {
   store.set(topicsAtom, [])
   clearAllConversations()

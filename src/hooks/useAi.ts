@@ -250,7 +250,6 @@ export const useAi = () => {
     await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
       if (data.error) {
         switch (data.statusCode) {
-          case 401:
           case 403:
             throw new Error(t('corporateUserOnly'))
           default:

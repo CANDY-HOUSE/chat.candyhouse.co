@@ -8,7 +8,6 @@ import { useModel } from '@/hooks/useModel'
 import {
   activeModelSelectAtom,
   activeTopicIdAtom,
-  isOwnerAtom,
   isShowSideBarAtom,
   previewModelSelectAtom,
   sideBarWidthAtom,
@@ -43,7 +42,6 @@ const Sidebar = () => {
   const sideBarW = useAtomValue(sideBarWidthAtom)
   const version = useAtomValue(versionInfo)
   const user = useAtomValue(userAtom)
-  const isOwner = useAtomValue(isOwnerAtom)
   const previewModelSelect = useAtomValue(previewModelSelectAtom)
   const [topics, setTopics] = useAtom(topicsAtom)
   const setActiveTopicId = useSetAtom(activeTopicIdAtom)
@@ -71,7 +69,7 @@ const Sidebar = () => {
         ))}
       </React.Fragment>
     )
-  }, [previewModelSelect])
+  }, [previewModelSelect, t])
 
   const actionsData = [
     {
@@ -163,7 +161,7 @@ const Sidebar = () => {
     if (!user?.isLogin || promoteLoading) return
 
     setPromoteLoading(true)
-    const result = await promoteModel(user.email)
+    const result = await promoteModel()
     if (result) {
       switchToast({ visible: true, message: t('common.upgradeSuccess'), level: Level.success })
     } else {
@@ -281,7 +279,7 @@ const Sidebar = () => {
               tooltip={t('set')}
               icon={<SettingsIcon sx={{ fontSize: 'var(--icon-size-small)' }} />}
             ></TooltipButton>
-            {isOwner && promoteInfo && (
+            {user?.isLogin && promoteInfo && (
               <TooltipButton
                 loading={promoteLoading}
                 disabled={previewModelSelect.length < 1}

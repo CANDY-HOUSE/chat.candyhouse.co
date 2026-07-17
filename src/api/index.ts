@@ -515,11 +515,10 @@ export const apiPostModelConfig = withLoading(
   }
 )
 
-export const apiModelPromote = withLoading(async (email: string) => {
+export const apiModelPromote = withLoading(async () => {
   try {
     const result = await api.post<{ action: string; promoted: number; writes: number }>(
-      `${config.apiPaths.model}/promote?action=putPromote`,
-      { email }
+      `${config.apiPaths.model}/promote?action=putPromote`
     )
     return result.data
   } catch {
