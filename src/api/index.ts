@@ -18,7 +18,6 @@ import {
   signOut,
   signUp
 } from 'aws-amplify/auth'
-import i18n from '../i18n'
 import { hideLoading, showLoading } from '../store'
 import { api } from './http'
 import { getIdToken } from './session'
@@ -489,8 +488,8 @@ async function lambdaUrlInvoke(
     }
 
     return response
-  } catch {
-    throw new Error(i18n.t('corporateUserOnly'))
+  } catch (error) {
+    throw error
   }
 }
 

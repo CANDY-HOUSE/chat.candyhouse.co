@@ -339,10 +339,10 @@ export const useAi = () => {
         modelInfo,
         topicId
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error)
 
-      if (error.name === 'AbortError') {
+      if ((error as Error).name === 'AbortError') {
         return
       }
 
