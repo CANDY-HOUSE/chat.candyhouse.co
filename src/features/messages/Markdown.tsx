@@ -10,7 +10,7 @@ import { logger, utils } from '@utils'
 import { useAtom, useAtomValue } from 'jotai'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type ExtraProps } from 'react-markdown'
 import { PhotoProvider, PhotoView } from 'react-photo-view'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { a11yDark, atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -25,6 +25,149 @@ import { visit } from 'unist-util-visit'
 
 import 'katex/dist/katex.min.css'
 import 'react-photo-view/dist/react-photo-view.css'
+
+const TAG_VARIANT_MAP = {
+  p: 'body1',
+  h1: 'h1',
+  h2: 'h2',
+  h3: 'h3',
+  h4: 'h4',
+  h5: 'h5',
+  h6: 'h6'
+} as const
+
+type MarkdownTypographyTag = keyof typeof TAG_VARIANT_MAP
+
+const MarkdownTypography = React.memo(function MarkdownTypography({
+  tag,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLElement> & { tag: MarkdownTypographyTag }) {
+  return (
+    <Typography
+      variant={TAG_VARIANT_MAP[tag] as TypographyProps['variant']}
+      {...props}
+      sx={{
+        color: 'var(--markdown-text-color)'
+      }}
+    >
+      {children}
+    </Typography>
+  )
+})
+
+const typographyComponents = Object.fromEntries(
+  (Object.keys(TAG_VARIANT_MAP) as MarkdownTypographyTag[]).map((tag) => [
+    tag,
+    ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+      <MarkdownTypography tag={tag} {...props}>
+        {children}
+      </MarkdownTypography>
+    )
+  ])
+) as Record<MarkdownTypographyTag, React.FC<React.HTMLAttributes<HTMLElement>>>
+
+const MarkdownAnchor = ({ children, href }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+  <Link href={href} underline="always" target="_blank" rel="noreferrer">
+    {children}
+  </Link>
+)
+
+const MarkdownImage = ({
+  node: _node,
+  ...props
+}: React.ImgHTMLAttributes<HTMLImageElement> & ExtraProps) => (
+  <PhotoProvider>
+    <PhotoView src={props.src}>
+      <div className="img-parent">
+        <img className="img-perfect-fit" src={props.src} alt={props.alt} />
+      </div>
+    </PhotoView>
+  </PhotoProvider>
+)
+
+const MarkdownVideo = ({
+  node,
+  ...props
+}: React.VideoHTMLAttributes<HTMLVideoElement> & ExtraProps) => {
+  const { src, autoPlay = false, controls = false, loop = false, muted = true } = props
+  const nodeProperties = node?.properties
+  const rawProgress = nodeProperties?.dataProgress ?? nodeProperties?.['data-progress']
+  const dataProgress = Number.parseFloat(String(rawProgress ?? '')) || 0
+  const rawAspectRatio = nodeProperties?.dataAspectRatio ?? nodeProperties?.['data-aspect-ratio']
+  const aspectRatio =
+    typeof rawAspectRatio === 'string' || typeof rawAspectRatio === 'number'
+      ? rawAspectRatio
+      : '9/16'
+
+  return (
+    <div
+      className="video-parent"
+      style={{
+        aspectRatio
+      }}
+    >
+      {dataProgress < 100 && (
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'var(--grey-50, #fafafa)',
+            zIndex: 10,
+            pointerEvents: 'none'
+          }}
+        >
+          <CircularProgress
+            enableTrackSlot
+            variant={dataProgress > 0 ? 'determinate' : 'indeterminate'}
+            value={dataProgress}
+            size={50}
+            sx={{
+              pointerEvents: 'auto',
+              color: 'var(--text-secondary)'
+            }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ color: 'var(--text-secondary)' }}
+            >{`${Math.round(dataProgress)}%`}</Typography>
+          </Box>
+        </Box>
+      )}
+      <video
+        autoPlay={autoPlay}
+        controls={controls}
+        muted={muted}
+        loop={loop}
+        className="video-perfect-fit"
+        onMouseEnter={(e) => {
+          const video = e.currentTarget
+          video.muted = false
+        }}
+        onMouseLeave={(e) => {
+          const video = e.currentTarget
+          video.muted = true
+        }}
+      >
+        <source src={src} type="video/mp4" />
+        <source src={src} type="video/webm" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  )
+}
 
 interface MarkdownProps {
   children: string
@@ -96,8 +239,28 @@ export const Markdown = ({
   // 否则 Markdown 会先把 \( \[ 当作转义标点吃掉反斜杠，AST 阶段已无法识别。
   const normalizedChildren = React.useMemo(() => normalizeMathDelimiters(children), [children])
 
+  const components = React.useMemo(
+    () => ({
+      code: ({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+        <CodeBlock
+          className={className || ''}
+          hiddenCodeCopyButton={hiddenCodeCopyButton}
+          fontSize={fontSize}
+          {...props}
+        >
+          {children}
+        </CodeBlock>
+      ),
+      ...typographyComponents,
+      a: MarkdownAnchor,
+      img: MarkdownImage,
+      video: MarkdownVideo
+    }),
+    [hiddenCodeCopyButton, fontSize]
+  )
+
   return (
-    <Box style={style}>
+    <Box style={{ ...style, '--markdown-text-color': textColor } as React.CSSProperties}>
       <ReactMarkdown
         remarkPlugins={[
           [remarkAllowSpecificVideo, { nonces: allowedVideoNonces }],
@@ -110,147 +273,7 @@ export const Markdown = ({
           [rehypeSanitize, sanitizeSchema],
           [rehypeKatex, rehypeKatexOptions]
         ]}
-        components={{
-          code: ({ className, children, ...props }) => {
-            return (
-              <CodeBlock
-                className={className || ''}
-                hiddenCodeCopyButton={hiddenCodeCopyButton}
-                children={children}
-                fontSize={fontSize}
-                {...props}
-              />
-            )
-          },
-          ...['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'].reduce(
-            (acc, tag) => ({
-              ...acc,
-              [tag]: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => {
-                const tagMap = {
-                  p: 'body1',
-                  h1: 'h1',
-                  h2: 'h2',
-                  h3: 'h3',
-                  h4: 'h4',
-                  h5: 'h5',
-                  h6: 'h6',
-                  li: 'body1'
-                }
-                return (
-                  <Typography
-                    variant={tagMap[tag as keyof typeof tagMap] as TypographyProps['variant']}
-                    component={tag === 'li' ? 'span' : 'div'}
-                    {...props}
-                    sx={{
-                      color: textColor
-                    }}
-                  >
-                    {children}
-                  </Typography>
-                )
-              }
-            }),
-            {}
-          ),
-          a: ({ children, href }) => {
-            return (
-              <Link href={href} underline="always" target="_blank" rel="noreferrer">
-                {children}
-              </Link>
-            )
-          },
-          img: ({ node, ...props }) => {
-            return (
-              <PhotoProvider>
-                <PhotoView src={props.src}>
-                  <div className="img-parent">
-                    <img className="img-perfect-fit" src={props.src} alt={props.alt} />
-                  </div>
-                </PhotoView>
-              </PhotoProvider>
-            )
-          },
-          video: ({ node, ...props }) => {
-            const { src, autoPlay = false, controls = false, loop = false, muted = true } = props
-            const nodeProperties = node?.properties as Record<string, unknown> | undefined
-            const rawProgress = nodeProperties?.dataProgress ?? nodeProperties?.['data-progress']
-            const dataProgress = Number.parseFloat(String(rawProgress ?? '')) || 0
-            const rawAspectRatio =
-              nodeProperties?.dataAspectRatio ?? nodeProperties?.['data-aspect-ratio']
-            const aspectRatio =
-              typeof rawAspectRatio === 'string' || typeof rawAspectRatio === 'number'
-                ? rawAspectRatio
-                : '9/16'
-
-            return (
-              <div
-                className="video-parent"
-                style={{
-                  aspectRatio
-                }}
-              >
-                {dataProgress < 100 && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: 'var(--grey-50, #fafafa)',
-                      zIndex: 10,
-                      pointerEvents: 'none'
-                    }}
-                  >
-                    <CircularProgress
-                      enableTrackSlot
-                      variant={dataProgress > 0 ? 'determinate' : 'indeterminate'}
-                      value={dataProgress}
-                      size={50}
-                      sx={{
-                        pointerEvents: 'auto',
-                        color: 'var(--text-secondary)'
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ color: 'var(--text-secondary)' }}
-                      >{`${Math.round(dataProgress)}%`}</Typography>
-                    </Box>
-                  </Box>
-                )}
-                <video
-                  autoPlay={autoPlay}
-                  controls={controls}
-                  muted={muted}
-                  loop={loop}
-                  className="video-perfect-fit"
-                  onMouseEnter={(e) => {
-                    const video = e.currentTarget
-                    video.muted = false
-                  }}
-                  onMouseLeave={(e) => {
-                    const video = e.currentTarget
-                    video.muted = true
-                  }}
-                >
-                  <source src={src} type="video/mp4" />
-                  <source src={src} type="video/webm" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            )
-          }
-        }}
+        components={components}
       >
         {normalizedChildren}
       </ReactMarkdown>

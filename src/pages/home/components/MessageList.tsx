@@ -371,18 +371,28 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
 
     let rafId: number | null = null
     let disconnectTimer: NodeJS.Timeout | null = null
+    let lastScrollHeight = container.scrollHeight
+
+    const scrollIfNeeded = () => {
+      // 模型回答期间由上方 effect 独占滚动逻辑；这里直接返回，避免两个 observer
+      // 同时读写 scrollTop/scrollHeight，互相在同一帧内使布局失效造成强制重排
+      if (conversationRef.current.modelInfo.atWork) return
+
+      const h = container.scrollHeight
+      if (h === lastScrollHeight) return
+      lastScrollHeight = h
+
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        container.scrollTop = h - container.clientHeight
+        rafId = null
+      })
+    }
 
     const mutationObserver = new MutationObserver(() => {
+      scrollIfNeeded()
       if (disconnectTimer) clearTimeout(disconnectTimer)
-      if (rafId) cancelAnimationFrame(rafId)
-
-      rafId = requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          container.scrollTop = container.scrollHeight - container.clientHeight
-          rafId = null
-          disconnectTimer = setTimeout(() => mutationObserver.disconnect(), 1000)
-        })
-      })
+      disconnectTimer = setTimeout(() => mutationObserver.disconnect(), 1000)
     })
     mutationObserver.observe(container, {
       childList: true,
@@ -390,11 +400,7 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
       characterData: true
     })
 
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(() => {
-        container.scrollTop = container.scrollHeight - container.clientHeight
-      })
-    })
+    const resizeObserver = new ResizeObserver(scrollIfNeeded)
     resizeObserver.observe(container)
 
     return () => {
