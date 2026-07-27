@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
@@ -56,13 +56,16 @@
     />
 
     <link rel="canonical" href="https://chat.candyhouse.co/" />
-    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon.png?v=3" />
-    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png?v=3" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link
       rel="preload"
       as="style"
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+SC&family=Noto+Sans+TC&display=swap"
-      onload="this.onload=null;this.rel='stylesheet'"
+      onload="
+        this.onload = null
+        this.rel = 'stylesheet'
+      "
     />
     <noscript>
       <link

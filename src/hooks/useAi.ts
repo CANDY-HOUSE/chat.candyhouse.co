@@ -249,12 +249,10 @@ export const useAi = () => {
     // 请求模型回答
     await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
       if (data.error) {
-        switch (data.statusCode) {
-          case 403:
-            throw new Error(t('corporateUserOnly'))
-          default:
-            throw new Error(data.error)
+        if (data.statusCode === 403 && data.errorCode === 'FORBIDDEN') {
+          throw new Error(t('corporateUserOnly'))
         }
+        throw new Error(data.error)
       }
 
       // 处理 refusal
