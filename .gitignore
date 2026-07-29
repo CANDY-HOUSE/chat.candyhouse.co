@@ -49,3 +49,5 @@ amplifyconfiguration.json
 #amplify-do-not-edit-end
 
 *-workspace
+.workflow
+public/version.json
