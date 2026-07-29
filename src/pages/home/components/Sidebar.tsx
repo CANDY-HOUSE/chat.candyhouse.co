@@ -80,7 +80,7 @@ const Sidebar = () => {
       }
     },
     {
-      text: `${version?.buildTime} ${version?.gitHash}`,
+      text: `${version?.buildTime} ${version?.gitHash}${version?.baseHash ? ` - ${version.baseHash}` : ''}`,
       disabled: true
     }
   ]

@@ -16,5 +16,6 @@ export interface BeanAnchor {
 
 export interface BeanVersionInfo {
   gitHash: string
+  baseHash: string
   buildTime: string
 }
