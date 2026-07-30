@@ -1,4 +1,4 @@
-import { apiStreamChat } from '@/api'
+import { apiConversationsUpdate, apiStreamChat } from '@/api'
 import { userAtom } from '@/store'
 import type { StreamValue, UnifiedInput, UnifiedResponse } from '@/types/ai'
 import type { ContentBlock, IMessage, IModelInfo } from '@/types/messagetypes'
@@ -237,6 +237,13 @@ export const useAi = () => {
     let modelRes: ContentBlock[] = [] // 模型的回答
     let modelThought: string = '' // 模型的思考
     const model = getModelName(modelInfo.modelName)
+
+    // 回写 modelName
+    if (model !== modelInfo.modelName) {
+      updateModelInfo(conversationId, { modelName: model }, topicId)
+      apiConversationsUpdate({ id: conversationId, modelInfo: { modelName: model } })
+    }
+
     const modelProvider = ai.getModelProvider(model)
     const { settings, providerOptions, tools } = modelInfo.jsonConfig || {}
 
@@ -338,11 +345,18 @@ export const useAi = () => {
         topicId
       })
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorName = (error as Error).name
 
-      if ((error as Error).name === 'AbortError') {
+      if (errorName === 'AbortError') {
         return
       }
+
+      const errorMessage =
+        errorName === 'NotAuthenticatedError'
+          ? t('notAuthenticated')
+          : error instanceof Error
+            ? error.message
+            : String(error)
 
       pushMessage(
         conversationId,

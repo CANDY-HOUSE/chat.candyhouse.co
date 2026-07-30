@@ -391,6 +391,13 @@ export const apiStreamChat = withLoading(
   ) => {
     const url = process.env.REACT_APP_CHAT_ENDPOINT!
     const idToken = await getIdToken()
+
+    if (!idToken) {
+      const error = new Error('Not authenticated')
+      error.name = 'NotAuthenticatedError'
+      throw error
+    }
+
     const res = await lambdaUrlInvoke(
       url,
       { model, options, idToken },

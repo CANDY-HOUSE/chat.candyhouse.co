@@ -74,6 +74,7 @@ export const languageEn = {
   topicCaption: 'Topic',
   allTopics: 'All Topics',
   jumpToLatestMsg: 'Jump to latest message',
+  notAuthenticated: '⚠️ Your session has expired. Please sign in again before sending.',
   corporateUserOnly:
     '⚠️ Sorry, please subscribe to our membership plan to continue using the service. [Subscription link](https://biz.candyhouse.co/biz/settings)',
   model: {

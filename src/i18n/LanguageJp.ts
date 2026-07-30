@@ -76,6 +76,7 @@ export const languageJa = {
   topicCaption: 'トピック',
   allTopics: 'すべてのトピック',
   jumpToLatestMsg: '最新のメッセージへ移動',
+  notAuthenticated: '⚠️ ログイン状態が無効になりました。再度ログインしてから送信してください。',
   corporateUserOnly:
     '⚠️ 申し訳ございません。引き続きご利用いただくには、弊社の会員プランへのご登録をお願いいたします。[お申し込みはこちら](https://biz.candyhouse.co/biz/settings)',
   model: {

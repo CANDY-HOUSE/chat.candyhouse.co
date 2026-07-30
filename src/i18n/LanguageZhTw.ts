@@ -73,6 +73,7 @@ export const languageZhTw = {
   topicCaption: '話題',
   allTopics: '全部話題',
   jumpToLatestMsg: '跳轉到最新訊息',
+  notAuthenticated: '⚠️ 登入狀態已失效，請重新登入後再傳送。',
   corporateUserOnly:
     '⚠️ 抱歉，請訂閱我們的會員方案以繼續使用。[訂閱連結](https://biz.candyhouse.co/biz/settings)',
   model: {
