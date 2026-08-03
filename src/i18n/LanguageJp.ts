@@ -70,7 +70,15 @@ export const languageJa = {
     jsonConfig: 'モデル設定',
     placeholder:
       'モデル設定はオブジェクトである必要があります（例：{"key": "value"}）。配列やプリミティブ型は使用できません。',
-    generateConfig: 'Configを生成して適用'
+    generateConfig: 'Configを生成して適用',
+    reset: 'リセット'
+  },
+  modelCategory: {
+    all: 'すべて',
+    LLM: 'テキスト対話',
+    IMAGE: '画像',
+    AUDIO: '音声',
+    VIDEO: '動画'
   },
   source: 'ソース',
   topicCaption: 'トピック',

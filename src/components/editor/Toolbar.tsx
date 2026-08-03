@@ -6,7 +6,7 @@ import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
 import MenuIcon from '@mui/icons-material/Menu'
 import ExpandIcon from '@mui/icons-material/OpenInFull'
 import SendIcon from '@mui/icons-material/Send'
-import { IconButton } from '@mui/material'
+import { CircularProgress, IconButton } from '@mui/material'
 import { useAtom, useSetAtom } from 'jotai'
 import React, { forwardRef, useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,12 +15,13 @@ interface Props {
   fileFn: (files: File[]) => void // 上传文件回调
   validateFile: (file: File) => boolean // 验证文件
   disableSend: boolean // 是否禁用发送按钮
+  sending?: boolean // 是否正在发送（loading 态）
   embed?: boolean // 是否嵌套
   style?: Record<string, string>
 }
 
 const Toolbar = forwardRef<HTMLDivElement, Props>(
-  ({ fileFn, validateFile, disableSend, embed, style }, ref) => {
+  ({ fileFn, validateFile, disableSend, sending, embed, style }, ref) => {
     const { t } = useTranslation()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const setIsShowSideBar = useSetAtom(isShowSideBarAtom)
@@ -140,7 +141,11 @@ const Toolbar = forwardRef<HTMLDivElement, Props>(
                 )}
               </IconButton>
               <IconButton className="ql-sendMsg" disabled={disableSend}>
-                <SendIcon sx={{ fontSize: 'var(--icon-size-small)' }} />
+                {sending ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <SendIcon sx={{ fontSize: 'var(--icon-size-small)' }} />
+                )}
               </IconButton>
             </>
           )}

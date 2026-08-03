@@ -67,7 +67,15 @@ export const languageZh = {
   modelSetting: {
     jsonConfig: '模型配置',
     placeholder: '【示例】请连接互联网。回答的创造性和语气强度为普通。',
-    generateConfig: '生成并应用设置'
+    generateConfig: '生成并应用设置',
+    reset: '重置'
+  },
+  modelCategory: {
+    all: '全部',
+    LLM: '文本对话',
+    IMAGE: '图像',
+    AUDIO: '语音',
+    VIDEO: '视频'
   },
   source: '源',
   topicCaption: '话题',

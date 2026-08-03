@@ -68,7 +68,15 @@ export const languageEn = {
     jsonConfig: 'Model Configuration',
     placeholder:
       'Example: Please connect to the Internet. The response creativity and tone are set to normal.',
-    generateConfig: 'Generate and Apply Config'
+    generateConfig: 'Generate and Apply Config',
+    reset: 'Reset'
+  },
+  modelCategory: {
+    all: 'All',
+    LLM: 'Text Chat',
+    IMAGE: 'Image',
+    AUDIO: 'Audio',
+    VIDEO: 'Video'
   },
   source: 'source',
   topicCaption: 'Topic',

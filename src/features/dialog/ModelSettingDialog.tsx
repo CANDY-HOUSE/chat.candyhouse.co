@@ -6,6 +6,7 @@ import { Level } from '@constants'
 import ArrowForwardIosSharpIcon from '@mui/icons-material/ArrowForwardIosSharp'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
+import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import MuiAccordionSummary, {
@@ -106,6 +107,12 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
   const handleConfigChange = (value: string) => {
     setUserNL(value)
     changeCache({ userNL: value, jsonConfig: {} })
+  }
+
+  const handleReset = () => {
+    setUserNL('')
+    setFormattedJsonConfig(JSON.stringify({}, null, 2))
+    changeCache({ userNL: '', jsonConfig: {} })
   }
 
   const handleImport = () => {
@@ -239,6 +246,29 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
         </Box>
 
         <Box sx={{ display: 'flex', columnGap: 2 }}>
+          <Button
+            startIcon={<RestartAltIcon />}
+            onClick={handleReset}
+            variant="outlined"
+            size="small"
+            sx={{
+              width: { xs: '100%', md: 'fit-content' },
+              height: 'fit-content',
+              textTransform: 'none',
+              color: theme.palette.text.secondary,
+              borderColor: theme.palette.text.secondary,
+              textOverflow: 'ellipsis',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                borderColor: theme.palette.text.secondary,
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            {t('modelSetting.reset')}
+          </Button>
+
           {conversationId && (
             <Button
               startIcon={<FileUploadIcon />}

@@ -10,6 +10,7 @@ import type {
 } from '@/types/messagetypes'
 import { clearAllLocalStorage } from '@/utils'
 import { config } from '@config'
+import { ModelCategory } from '@constants'
 import {
   confirmSignIn,
   fetchUserAttributes,
@@ -147,16 +148,19 @@ export const apiGetModelSelect = withLoading(
 )
 
 // 创建话题
-export const apiTopicsCreate = withLoading(async (name: string) => {
-  try {
-    const result = await api.post(`${config.apiPaths.topics}`, {
-      name
-    })
-    return result.success
-  } catch {
-    return false
+export const apiTopicsCreate = withLoading(
+  async (name: string, category: ModelCategory | 'all' = 'all') => {
+    try {
+      const result = await api.post(`${config.apiPaths.topics}`, {
+        name,
+        category
+      })
+      return result.success
+    } catch {
+      return false
+    }
   }
-})
+)
 
 // 获取话题列表
 export const apiTopicsGet = withLoading(async () => {

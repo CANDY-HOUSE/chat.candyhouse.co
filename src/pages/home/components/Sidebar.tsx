@@ -21,12 +21,12 @@ import {
 import { chat, localKey, putLocalValue } from '@/utils'
 import { apiConversationsGet, apiTopicsCreate, apiTopicsGet } from '@api'
 import { icons } from '@assets/icons'
-import { Level } from '@constants'
+import { Level, ModelCategory } from '@constants'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import SearchIcon from '@mui/icons-material/Search'
 import SettingsIcon from '@mui/icons-material/Settings'
 import UpdateIcon from '@mui/icons-material/Update'
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, Menu, MenuItem, Stack, Typography } from '@mui/material'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import React, { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -52,6 +52,19 @@ const Sidebar = () => {
   const sideBarWidth = isMobile ? UI_CONSTANTS.mobileSideBarWidth : sideBarW
 
   const topicListRef = useRef<TopicListRef>(null)
+  const newTopicAnchorRef = useRef<HTMLDivElement>(null)
+  const [newTopicMenuOpen, setNewTopicMenuOpen] = useState(false)
+
+  const newTopicCategoryOptions: Array<{ label: string; value: ModelCategory | 'all' }> = [
+    { label: t('modelCategory.all'), value: 'all' },
+    // AUDIO 暂未接入相关模型，先屏蔽该选项
+    ...Object.values(ModelCategory)
+      .filter((category) => category !== ModelCategory.AUDIO)
+      .map((category) => ({
+        label: t(`modelCategory.${category}`),
+        value: category
+      }))
+  ]
 
   const newChatDisabled = useMemo(() => {
     return !user?.isLogin && topics.length >= 1
@@ -115,13 +128,13 @@ const Sidebar = () => {
   }
 
   // 创建话题
-  const handleCreateTopic = async () => {
+  const handleCreateTopic = async (category: ModelCategory | 'all' = 'all') => {
     if (newChatDisabled) return
-    const topicName = t('topicCaption')
+    const topicName = category === 'all' ? t('topicCaption') : t(`modelCategory.${category}`)
     let success = true
 
     if (user?.isLogin) {
-      success = await apiTopicsCreate(topicName)
+      success = await apiTopicsCreate(topicName, category)
       const list = await apiTopicsGet()
       const topicId = list[0]!.id
       const convs = await apiConversationsGet(topicId)
@@ -136,13 +149,15 @@ const Sidebar = () => {
         name: topicName,
         models: [] as string[]
       }
-      const convsTmpData = activeModelSelect.map((model) => {
-        const conv = chat.createTplConv(topicTmpId, model.modelName)
-        model.isDefault && topicTmpData.models.push(conv.modelId)
-        conv.modelInfo = model
+      const convsTmpData = activeModelSelect
+        .filter((model) => category === 'all' || model.category === category)
+        .map((model) => {
+          const conv = chat.createTplConv(topicTmpId, model.modelName)
+          model.isDefault && topicTmpData.models.push(conv.modelId)
+          conv.modelInfo = model
 
-        return conv
-      })
+          return conv
+        })
 
       setActiveTopicId(topicTmpId)
       setTopics([topicTmpData, ...topics])
@@ -268,12 +283,31 @@ const Sidebar = () => {
           sx={{ '& > li:first-of-type': { pl: 'calc(var(--spacing-sm) - 8px)' } }}
         >
           <Stack direction="row" justifyContent="flex-start" sx={{ width: '100%' }}>
-            <TooltipButton
-              onClick={handleCreateTopic}
-              disabled={newChatDisabled}
-              tooltip={t('createTopic')}
-              icon={<AddCircleOutlineIcon sx={{ fontSize: 'var(--icon-size-small)' }} />}
-            ></TooltipButton>
+            <Box ref={newTopicAnchorRef} sx={{ display: 'inline-flex' }}>
+              <TooltipButton
+                onClick={() => setNewTopicMenuOpen(true)}
+                disabled={newChatDisabled}
+                tooltip={t('createTopic')}
+                icon={<AddCircleOutlineIcon sx={{ fontSize: 'var(--icon-size-small)' }} />}
+              ></TooltipButton>
+            </Box>
+            <Menu
+              anchorEl={newTopicAnchorRef.current}
+              open={newTopicMenuOpen}
+              onClose={() => setNewTopicMenuOpen(false)}
+            >
+              {newTopicCategoryOptions.map((option) => (
+                <MenuItem
+                  key={option.value}
+                  onClick={() => {
+                    setNewTopicMenuOpen(false)
+                    handleCreateTopic(option.value)
+                  }}
+                >
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Menu>
             <TooltipButton
               onClick={() => switchDialog({ children: <SettingDialog />, visible: true })}
               tooltip={t('set')}

@@ -59,11 +59,13 @@ const Editor = forwardRef<EditorHandle, Props>(
 
     const [isEditorEmpty, setIsEditorEmpty] = useState(true)
     const [isComposing, setIsComposing] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     const disableSendRef = useRef(disableSend)
     const embedRef = useRef(embed)
     const isEditorEmptyRef = useRef(isEditorEmpty)
     const isComposingRef = useRef(isComposing)
+    const isSubmittingRef = useRef(isSubmitting)
     const draftsRef = useRef<DraftsType | null>(getLocalValue(localKey.editorDrafts))
     const editorHistoryIndexRef = useRef(-1)
 
@@ -239,7 +241,7 @@ const Editor = forwardRef<EditorHandle, Props>(
     )
 
     // 点击发送按钮
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
       // 存储消息历史
       let editorHistory = getLocalValue<Array<Delta | string>>(localKey.editorHistory) || []
       editorHistory = editorHistory.slice(-10)
@@ -248,9 +250,14 @@ const Editor = forwardRef<EditorHandle, Props>(
       putLocalValue(localKey.editorHistory, editorHistory)
       editorHistoryIndexRef.current = -1
 
-      submitFn?.(true)
-      clear()
-      deleteDraft()
+      setIsSubmitting(true)
+      try {
+        await submitFn?.(true)
+      } finally {
+        clear()
+        deleteDraft()
+        setIsSubmitting(false)
+      }
     }, [clear, deleteDraft, getContent, submitFn])
 
     // 删除选区
@@ -437,6 +444,10 @@ const Editor = forwardRef<EditorHandle, Props>(
     }, [isComposing])
 
     useEffect(() => {
+      isSubmittingRef.current = isSubmitting
+    }, [isSubmitting])
+
+    useEffect(() => {
       if (!editorContainerRef.current || !toolbarContainerRef.current) {
         return
       }
@@ -488,7 +499,11 @@ const Editor = forwardRef<EditorHandle, Props>(
                       quill.setSelection(range.index + 1, 0)
                       return false
                     }
-                    if (!isEditorEmptyRef.current && !disableSendRef.current) {
+                    if (
+                      !isEditorEmptyRef.current &&
+                      !disableSendRef.current &&
+                      !isSubmittingRef.current
+                    ) {
                       handleSubmitRef.current()
                     }
 
@@ -616,7 +631,8 @@ const Editor = forwardRef<EditorHandle, Props>(
           ref={toolbarContainerRef}
           fileFn={insertFiles}
           validateFile={validateFile}
-          disableSend={embed ? false : isEditorEmpty || disableSend}
+          disableSend={embed ? false : isEditorEmpty || disableSend || isSubmitting}
+          sending={isSubmitting}
           embed={embed}
           style={toolbarStyle}
         />

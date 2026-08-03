@@ -67,7 +67,15 @@ export const languageZhTw = {
   modelSetting: {
     jsonConfig: '模型配置',
     placeholder: '【範例】請連接網際網路。回答的創造性與語氣強度為普通。',
-    generateConfig: '產生並套用設定'
+    generateConfig: '產生並套用設定',
+    reset: '重設'
+  },
+  modelCategory: {
+    all: '全部',
+    LLM: '文字對話',
+    IMAGE: '圖像',
+    AUDIO: '語音',
+    VIDEO: '影片'
   },
   source: '源',
   topicCaption: '話題',

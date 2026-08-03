@@ -27,7 +27,7 @@ const EditorPanelInner: React.FC<Props> = ({ contentBlock, submitFn, embed = fal
       if (!submitFn || !editorRef.current) return
       if (isSend) {
         const data = await editorRef.current.getBlock()
-        submitFn(data)
+        await submitFn(data)
       }
       submitFn(null)
     },
