@@ -67,11 +67,13 @@ export const languageJa = {
   },
   refusal: '拒否により会話がリセットされました。質問を削除してください',
   modelSetting: {
-    jsonConfig: 'モデル設定',
+    nlLabel: '自然言語での指示',
     placeholder:
-      'モデル設定はオブジェクトである必要があります（例：{"key": "value"}）。配列やプリミティブ型は使用できません。',
-    generateConfig: 'Configを生成して適用',
-    reset: 'リセット'
+      '【例】インターネットに接続してください。回答の創造性と語調の強さは普通にしてください。',
+    generate: '生成して適用',
+    configPreview: '会話設定',
+    reset: 'リセット',
+    genTimeout: '生成がタイムアウトしました。説明を短くして再試行してください。'
   },
   modelCategory: {
     all: 'すべて',

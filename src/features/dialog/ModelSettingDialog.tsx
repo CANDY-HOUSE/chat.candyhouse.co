@@ -1,7 +1,7 @@
-import { apiPostModelConfig } from '@/api'
 import { useConversation } from '@/hooks/useConversation'
 import { useModel } from '@/hooks/useModel'
-import { switchDialog, switchToast } from '@/store'
+import { setDialogDisableClose, switchDialog, switchToast } from '@/store'
+import type { IModelInfo } from '@/types/messagetypes'
 import { Level } from '@constants'
 import ArrowForwardIosSharpIcon from '@mui/icons-material/ArrowForwardIosSharp'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
@@ -17,16 +17,19 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import InputAdornment from '@mui/material/InputAdornment'
 import Stack from '@mui/material/Stack'
+import type { Theme } from '@mui/material/styles'
 import { styled, useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { chat, enhanceEventParams } from '@utils'
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { ConfigDomainContext } from './configDomains'
+import { CONFIG_DOMAIN_ORDER, CONFIG_DOMAINS, runConfigGen } from './configDomains'
 
 interface Props {
   conversationId: string
-  changeCache: (data: Record<string, unknown>) => void
+  changeCache: (data: Partial<IModelInfo>) => void
 }
 
 const customStyle = {
@@ -61,42 +64,102 @@ const AccordionSummary = styled((props: AccordionSummaryProps) => (
   }
 }))
 
+const actionButtonSx = (theme: Theme) => ({
+  width: { xs: '100%', md: 'fit-content' },
+  height: 'fit-content',
+  textTransform: 'none' as const,
+  color: theme.palette.text.secondary,
+  borderColor: theme.palette.text.secondary,
+  textOverflow: 'ellipsis',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap' as const,
+  '&:hover': {
+    borderColor: theme.palette.text.secondary,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+  }
+})
+
 const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) => {
   const theme = useTheme()
   const { t } = useTranslation()
   const { getModelName } = useModel()
   const { getAttrValue, pushMessage, getConversation } = useConversation()
-  const modelInfo = getAttrValue(conversationId, 'modelInfo')!
-  const modelName = getModelName(modelInfo.modelName)
+  const initialModelInfo = getAttrValue(conversationId, 'modelInfo')!
+  const modelName = getModelName(initialModelInfo.modelName)
   const conversation = getConversation(conversationId)
-  const [userNL, setUserNL] = useState<string>(modelInfo.userNL || '')
-  const [loading, setLoading] = useState<boolean>(false)
-  const [formattedJsonConfig, setFormattedJsonConfig] = useState<string>(
-    JSON.stringify(modelInfo.jsonConfig || {}, null, 2)
+
+  const [nl, setNl] = useState(initialModelInfo.userNL ?? '')
+
+  // 单一草稿：既驱动渲染（含合并预览），也决定落库内容。
+  const [draft, setDraft] = useState<IModelInfo>(initialModelInfo)
+  const draftRef = useRef(draft)
+  draftRef.current = draft
+
+  // 单飞：只有一个按钮，一次只允许一次生成在途；命中哪些域由后端分类器决定。
+  const [loading, setLoading] = useState(false)
+
+  // 生成中不允许通过遮罩/ESC 关闭弹窗，避免中途关闭丢失即将写回的结果。
+  useEffect(() => {
+    setDialogDisableClose(loading)
+  }, [loading])
+
+  const patchDraft = useCallback(
+    (patch: Partial<IModelInfo>) => {
+      draftRef.current = { ...draftRef.current, ...patch }
+      setDraft(draftRef.current)
+      changeCache(patch)
+    },
+    [changeCache]
+  )
+
+  const ctx: ConfigDomainContext = useMemo(
+    () => ({ conversationId, modelName, getDraft: () => draftRef.current, patchDraft }),
+    [conversationId, modelName, patchDraft]
+  )
+
+  const mergedPreview = useMemo(
+    () =>
+      Object.fromEntries(
+        CONFIG_DOMAIN_ORDER.map((domain) => [domain, CONFIG_DOMAINS[domain].preview.select(draft)])
+      ),
+    [draft]
   )
 
   const handleConfigGen = async () => {
     setLoading(true)
     try {
-      const result = await apiPostModelConfig(modelName, userNL)
+      const { explanations, domains } = await runConfigGen(nl, ctx)
 
-      if (result) {
-        const { config, explanations } = result
-        explanations.forEach((item) => {
-          switchToast({
-            visible: true,
-            message: item.message,
-            level: item.kind === 'applied' ? Level.success : Level.warning,
-            duration: 6000
-          })
+      explanations.forEach((item) => {
+        switchToast({
+          visible: true,
+          message: item.message,
+          level: item.kind === 'applied' ? Level.success : Level.warning,
+          duration: 6000
         })
-        changeCache({ jsonConfig: config, userNL })
-        setFormattedJsonConfig(JSON.stringify(config, null, 2))
-      }
+      })
+
+      patchDraft({ userNL: nl })
+
+      domains.forEach((domain) => {
+        gtag(
+          'event',
+          'model_management',
+          enhanceEventParams({
+            action_type: CONFIG_DOMAINS[domain].gtagAction,
+            model_name: modelName
+          })
+        )
+      })
     } catch (error) {
+      const isTimeout = error instanceof DOMException && error.name === 'AbortError'
       switchToast({
         visible: true,
-        message: error instanceof Error ? error.message : t('SubmissionFail'),
+        message: isTimeout
+          ? t('modelSetting.genTimeout')
+          : error instanceof Error
+            ? error.message
+            : t('SubmissionFail'),
         level: Level.error
       })
     } finally {
@@ -104,15 +167,9 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
     }
   }
 
-  const handleConfigChange = (value: string) => {
-    setUserNL(value)
-    changeCache({ userNL: value, jsonConfig: {} })
-  }
-
   const handleReset = () => {
-    setUserNL('')
-    setFormattedJsonConfig(JSON.stringify({}, null, 2))
-    changeCache({ userNL: '', jsonConfig: {} })
+    setNl('')
+    patchDraft({ jsonConfig: {}, convConfig: {}, userNL: undefined })
   }
 
   const handleImport = () => {
@@ -168,8 +225,8 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
           minRows={4}
           maxRows={12}
           variant="outlined"
-          value={userNL}
-          label={t('modelSetting.jsonConfig')}
+          value={nl}
+          label={t('modelSetting.nlLabel')}
           placeholder={t('modelSetting.placeholder')}
           slotProps={{
             inputLabel: { shrink: true },
@@ -178,26 +235,44 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
               sx: {
                 position: 'relative',
                 '& .MuiInputBase-inputMultiline': {
-                  pb: 4
+                  pb: 7
                 }
               },
               endAdornment: (
                 <InputAdornment
                   position="end"
-                  sx={{ position: 'absolute', right: 8, bottom: 6, m: 0, bgcolor: '#fff' }}
+                  sx={{
+                    position: 'absolute',
+                    right: 8,
+                    bottom: 6,
+                    m: 0,
+                    bgcolor: '#fff',
+                    borderRadius: 1,
+                    maxWidth: 'calc(100% - 16px)'
+                  }}
                 >
                   <Button
-                    disabled={!userNL.trim() || loading}
+                    disabled={!nl.trim() || loading}
                     size="small"
                     sx={{
-                      background: 'var(--gradient-ai)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
+                      minWidth: 'auto',
+                      whiteSpace: 'nowrap',
+                      ...(loading
+                        ? {}
+                        : {
+                            background: 'var(--gradient-ai)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                          }),
+                      '&.Mui-disabled': {
+                        WebkitTextFillColor: 'unset',
+                        opacity: 0.4
+                      }
                     }}
                     onClick={handleConfigGen}
                     loading={loading}
                   >
-                    {t('modelSetting.generateConfig')}
+                    {t('modelSetting.generate')}
                   </Button>
                 </InputAdornment>
               )
@@ -215,56 +290,43 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
           sx={{
             mt: 'var(--spacing-md)'
           }}
-          onChange={(e) => handleConfigChange(e.target.value)}
+          onChange={(e) => setNl(e.target.value)}
         />
+      </Box>
+
+      <Box sx={{ width: '100%' }}>
+        <Accordion sx={{ boxShadow: 'none' }}>
+          <AccordionSummary>
+            <Typography component="span">{t('modelSetting.configPreview')}</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography
+              component="pre"
+              sx={{
+                m: 0,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontFamily: 'monospace'
+              }}
+            >
+              {JSON.stringify(mergedPreview, null, 2)}
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
       </Box>
 
       <Stack
         direction={{ xs: 'column', md: 'row' }}
-        spacing={4}
-        justifyContent={{ md: 'space-between' }}
+        spacing={2}
+        justifyContent={{ md: 'flex-end' }}
       >
-        <Box sx={{ width: { xs: '100%', md: '60%' } }}>
-          <Accordion sx={{ boxShadow: 'none' }}>
-            <AccordionSummary>
-              <Typography component="span">Config</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Typography
-                component="pre"
-                sx={{
-                  m: 0,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  fontFamily: 'monospace'
-                }}
-              >
-                {formattedJsonConfig}
-              </Typography>
-            </AccordionDetails>
-          </Accordion>
-        </Box>
-
         <Box sx={{ display: 'flex', columnGap: 2 }}>
           <Button
             startIcon={<RestartAltIcon />}
             onClick={handleReset}
             variant="outlined"
             size="small"
-            sx={{
-              width: { xs: '100%', md: 'fit-content' },
-              height: 'fit-content',
-              textTransform: 'none',
-              color: theme.palette.text.secondary,
-              borderColor: theme.palette.text.secondary,
-              textOverflow: 'ellipsis',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              '&:hover': {
-                borderColor: theme.palette.text.secondary,
-                backgroundColor: 'rgba(0, 0, 0, 0.04)'
-              }
-            }}
+            sx={actionButtonSx(theme)}
           >
             {t('modelSetting.reset')}
           </Button>
@@ -275,20 +337,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
               onClick={handleImport}
               variant="outlined"
               size="small"
-              sx={{
-                width: { xs: '100%', md: 'fit-content' },
-                height: 'fit-content',
-                textTransform: 'none',
-                color: theme.palette.text.secondary,
-                borderColor: theme.palette.text.secondary,
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                '&:hover': {
-                  borderColor: theme.palette.text.secondary,
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                }
-              }}
+              sx={actionButtonSx(theme)}
             >
               {t('importChat')}
             </Button>
@@ -299,20 +348,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
             onClick={handleExport}
             variant="outlined"
             size="small"
-            sx={{
-              width: { xs: '100%', md: 'fit-content' },
-              height: 'fit-content',
-              textTransform: 'none',
-              color: theme.palette.text.secondary,
-              borderColor: theme.palette.text.secondary,
-              textOverflow: 'ellipsis',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              '&:hover': {
-                borderColor: theme.palette.text.secondary,
-                backgroundColor: 'rgba(0, 0, 0, 0.04)'
-              }
-            }}
+            sx={actionButtonSx(theme)}
           >
             {t('exportChat')}
           </Button>

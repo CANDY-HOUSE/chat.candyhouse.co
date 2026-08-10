@@ -65,10 +65,12 @@ export const languageZh = {
   },
   refusal: '对话因拒绝而重置，请删除你的提问',
   modelSetting: {
-    jsonConfig: '模型配置',
+    nlLabel: '自然语言描述',
     placeholder: '【示例】请连接互联网。回答的创造性和语气强度为普通。',
-    generateConfig: '生成并应用设置',
-    reset: '重置'
+    generate: '生成并应用',
+    configPreview: '会话配置',
+    reset: '重置',
+    genTimeout: '生成超时，请精简描述后重试。'
   },
   modelCategory: {
     all: '全部',

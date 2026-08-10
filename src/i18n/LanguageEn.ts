@@ -65,11 +65,13 @@ export const languageEn = {
   },
   refusal: 'The conversation was reset due to a rejection. Please delete your question.',
   modelSetting: {
-    jsonConfig: 'Model Configuration',
+    nlLabel: 'Describe what you want',
     placeholder:
       'Example: Please connect to the Internet. The response creativity and tone are set to normal.',
-    generateConfig: 'Generate and Apply Config',
-    reset: 'Reset'
+    generate: 'Generate & Apply',
+    configPreview: 'Conversation Config',
+    reset: 'Reset',
+    genTimeout: 'Generation timed out. Please shorten your description and try again.'
   },
   modelCategory: {
     all: 'All',

@@ -66,6 +66,7 @@ const RoutesComponent: React.FC = () => {
       <CModal
         open={dialog.visible}
         children={dialog.children}
+        disableClose={dialog.disableClose}
         onClose={() => {
           switchDialog({ visible: false, children: null })
           dialog.onClose && dialog.onClose()

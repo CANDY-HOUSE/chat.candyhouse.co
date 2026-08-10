@@ -18,6 +18,12 @@ export interface IModel {
   updatedAt?: string
 }
 
+// 会话级配置：用户可编辑，与模型注册表无关。后续会话级字段都加这里——
+// 生成、合并、持久化、预览会自动生效。
+export interface IConversationConfig {
+  name?: string // 用户自定义会话显示名；缺省回退 alias / modelName
+}
+
 export interface IModelInfo extends IModel {
   atWork?: boolean // 模型是否工作中（回答中）
   disable?: boolean // 模型是否被禁用
@@ -26,7 +32,40 @@ export interface IModelInfo extends IModel {
     providerOptions?: Record<string, unknown> // L2 厂商私货参数
     tools?: Record<string, unknown> // 可用工具配置
   } // 模型 JSON 配置
+  convConfig?: IConversationConfig // 会话级配置，与 jsonConfig 平级命名空间
   userNL?: string // 用户输入的自然语言
+}
+
+/* config-gen 域契约放在 types 而非 features，避免 api → features 反向依赖 */
+export interface ConfigDomainMap {
+  // 新增 domain 只需在这里加一行
+  model: NonNullable<IModelInfo['jsonConfig']>
+  conversation: IConversationConfig
+}
+
+export type ConfigDomain = keyof ConfigDomainMap
+
+export interface ConfigGenExplanation {
+  kind: 'applied' | 'ignored' | 'assumption'
+  message: string
+  path?: string
+}
+
+export interface ConfigGenResult<D extends ConfigDomain = ConfigDomain> {
+  config: ConfigDomainMap[D]
+  explanations: ConfigGenExplanation[]
+}
+
+export interface ConfigGenDomainResult<
+  D extends ConfigDomain = ConfigDomain
+> extends ConfigGenResult<D> {
+  domain: D
+}
+
+/** POST /model/config-gen 的响应体：永远是数组，无论后端走分类路径（可能命中多个 domain）
+ *  还是显式单 domain 路径（数组恒为 1 项）——调用方只需处理一种形状。 */
+export interface ConfigGenResponse {
+  results: ConfigGenDomainResult[]
 }
 
 export interface ContentBlock {

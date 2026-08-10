@@ -7,6 +7,7 @@ interface ApiOptions {
   params?: Record<string, unknown>
   retry?: number
   requireAuth?: boolean
+  timeoutMs?: number // 覆盖默认 30s；生成类接口需要更长
 }
 
 export interface ApiResponse<T = unknown> {
@@ -38,7 +39,7 @@ async function request<T = unknown>(
   data?: unknown,
   options?: ApiOptions
 ): Promise<ApiResponse<T>> {
-  const { params, retry = 0, requireAuth = true } = options || {}
+  const { params, retry = 0, requireAuth = true, timeoutMs = TIMEOUT_MS } = options || {}
   const url = `${API_ENDPOINT}${path}${buildQueryString(params)}`
   const hasBody = method !== 'get' && data !== undefined
 
@@ -47,7 +48,7 @@ async function request<T = unknown>(
   // 重试逻辑
   for (let i = 0; i <= retry; i++) {
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
 
     try {
       const headers: Record<string, string> = {}

@@ -1,6 +1,7 @@
 import type { UnifiedResponse } from '@/types/ai'
 import type { BeanUser } from '@/types/beantypes'
 import type {
+  ConfigGenResponse,
   IConversation,
   IMessage,
   IMessageSearch,
@@ -504,26 +505,24 @@ async function lambdaUrlInvoke(
   }
 }
 
-export const apiPostModelConfig = withLoading(
-  async (model: string, description: string, options: Record<string, unknown> = {}) => {
-    try {
-      const result = await api.post<{
-        config: Record<string, any>
-        explanations: Array<any>
-      }>(`${config.apiPaths.model}/config-gen`, {
-        model,
-        description,
-        options
-      })
-      return result.data
-    } catch {
-      return null
-    }
-  },
-  {
-    enableLoading: false
-  }
-)
+const CONFIG_GEN_TIMEOUT_MS = 60_000
+
+/**
+ * 自然语言 → 结构化配置。命中哪些 domain 由后端分类器决定（可能命中多个）
+ */
+export const apiPostConfigGen = async (param: {
+  model: string
+  description: string
+  options?: Record<string, unknown>
+}): Promise<ConfigGenResponse> => {
+  const { model, description, options = {} } = param
+  const result = await api.post<ConfigGenResponse>(
+    `${config.apiPaths.model}/config-gen`,
+    { model, description, options },
+    { timeoutMs: CONFIG_GEN_TIMEOUT_MS }
+  )
+  return result.data
+}
 
 export const apiModelPromote = withLoading(async () => {
   try {

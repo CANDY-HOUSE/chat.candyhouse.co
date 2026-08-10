@@ -65,10 +65,12 @@ export const languageZhTw = {
   },
   refusal: '對話因拒絕而重設，請刪除你的提問',
   modelSetting: {
-    jsonConfig: '模型配置',
+    nlLabel: '自然語言描述',
     placeholder: '【範例】請連接網際網路。回答的創造性與語氣強度為普通。',
-    generateConfig: '產生並套用設定',
-    reset: '重設'
+    generate: '產生並套用',
+    configPreview: '對話設定',
+    reset: '重設',
+    genTimeout: '產生逾時，請精簡描述後重試。'
   },
   modelCategory: {
     all: '全部',

@@ -29,12 +29,12 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
   const { t } = useTranslation()
   const user = useAtomValue(userAtom)
   const { getAttrValue, updateModelInfo, deleteMessage, deleteConversation } = useConversation()
-  const { tools, options, ...modelInfo } = getAttrValue(
-    conversationId,
-    'modelInfo'
-  ) as IModelInfo & { tools?: unknown; options?: unknown }
-  let originValues = { ...modelInfo }
-  const valuesRef = useRef({ ...modelInfo })
+  const modelName = getAttrValue(conversationId, 'modelInfo')?.modelName ?? ''
+  // 打开弹窗时才取基线快照。React.memo(Settings) + 非响应式 store.get 会把渲染期读到的
+  // modelInfo 冻结在首次挂载，导致 isEqual 基线陈旧、关闭弹窗时把 useAi 写入的
+  // modelName/atWork 回滚——这两个 ref 必须在 set 的 handle() 里（每次打开）重新赋值。
+  const originValuesRef = useRef<Partial<IModelInfo>>({})
+  const valuesRef = useRef<Partial<IModelInfo>>({})
 
   const actionsData = [
     {
@@ -47,7 +47,15 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
         />
       ),
       handle(id: string) {
-        const changeCache = (data: Record<string, unknown>) => {
+        const current = (getAttrValue(id, 'modelInfo') ?? {}) as IModelInfo & {
+          tools?: unknown
+          options?: unknown
+        }
+        const { tools, options, ...snapshot } = current
+        originValuesRef.current = { ...snapshot }
+        valuesRef.current = { ...snapshot }
+
+        const changeCache = (data: Partial<IModelInfo>) => {
           valuesRef.current = { ...valuesRef.current, ...data }
         }
 
@@ -77,7 +85,7 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
           'model_management',
           enhanceEventParams({
             action_type: 'clear_history',
-            model_name: modelInfo.modelName
+            model_name: modelName
           })
         )
       }
@@ -100,7 +108,7 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
           'model_management',
           enhanceEventParams({
             action_type: 'remove',
-            model_name: modelInfo.modelName
+            model_name: modelName
           })
         )
       }
@@ -108,7 +116,7 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
   ]
 
   const handleUpdate = async () => {
-    if (!isEqual(valuesRef.current, originValues)) {
+    if (!isEqual(valuesRef.current, originValuesRef.current)) {
       const { jsonConfigRaw, disable, ...mI } = valuesRef.current
       let success = true
 
@@ -121,7 +129,7 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
 
       if (success) {
         updateModelInfo(conversationId, mI)
-        originValues = { ...mI }
+        originValuesRef.current = { ...mI }
       } else {
         switchToast({ visible: true, message: t('SubmissionFail'), level: Level.error })
       }

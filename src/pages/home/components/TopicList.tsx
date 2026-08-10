@@ -25,7 +25,7 @@ import {
   userAtom
 } from '@/store'
 import type { IConversation, ITopics } from '@/types/messagetypes'
-import { chat, enhanceEventParams, logger } from '@/utils'
+import { chat, enhanceEventParams, logger, resolveConversationTitle } from '@/utils'
 import { Level } from '@constants'
 import {
   Add as AddIcon,
@@ -573,7 +573,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
                           </ListItemIcon>
                           <ListItemText
                             id={conv.modelId}
-                            primary={conv.modelInfo.alias || conv.modelInfo.modelName}
+                            primary={resolveConversationTitle(conv.modelInfo)}
                             slotProps={{
                               primary: {
                                 variant: 'body1'

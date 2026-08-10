@@ -367,7 +367,7 @@ export const useConversation = () => {
                 tokens: _message.tokens,
                 totalTokens: _message.totalTokens,
                 words: _message.words,
-                annotations: _message.annotations,
+                annotations: _message.annotations ?? [],
                 thoughtValue: _message.thoughtValue,
                 ...(_message.previousResponseId && {
                   previousResponseId: _message.previousResponseId
@@ -386,7 +386,6 @@ export const useConversation = () => {
                 }
               } else {
                 if (message.role === 'user') {
-                  // User message content is passed as-is
                   delete msgCreateParam.tokens
                   delete msgCreateParam.totalTokens
                 }

@@ -18,6 +18,7 @@ interface IDialog {
   visible: boolean
   children?: React.ReactNode
   onClose?: () => void
+  disableClose?: boolean
 }
 
 interface IAnchor {
@@ -56,6 +57,10 @@ export const switchAnchor = (data: IAnchor): void => {
 
 export const switchDialog = (data: IDialog): void => {
   store.set(dialogAtom, data)
+}
+
+export const setDialogDisableClose = (disableClose: boolean): void => {
+  store.set(dialogAtom, { ...store.get(dialogAtom), disableClose })
 }
 
 export const resetFeedback = () => {

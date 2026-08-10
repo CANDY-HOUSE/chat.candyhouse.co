@@ -171,15 +171,18 @@ export const useAi = () => {
         previousResponseId?: string
         topicId?: string
         usages?: UnifiedResponse['usage']
+        annotations?: string[]
       }
     ) => {
-      const { content, thoughtValue, status, previousResponseId, topicId, usages } = extra
+      const { content, thoughtValue, status, previousResponseId, topicId, usages, annotations } =
+        extra
       const isEnd = [MessageState.finish, MessageState.error].includes(status)
 
       message.state = status
       message.content = typeof content === 'string' ? [chat.createContentBlock(content)] : content
       message.thoughtValue = thoughtValue
       message.previousResponseId = previousResponseId
+      message.annotations = annotations ?? message.annotations
 
       if (status === MessageState.finish || status === MessageState.error) {
         // 更新会话消息token和字数信息
@@ -238,10 +241,13 @@ export const useAi = () => {
     let modelThought: string = '' // 模型的思考
     const model = getModelName(modelInfo.modelName)
 
-    // 回写 modelName
+    // 回写 modelName，发送合并后的完整 modelInfo
     if (model !== modelInfo.modelName) {
       updateModelInfo(conversationId, { modelName: model }, topicId)
-      apiConversationsUpdate({ id: conversationId, modelInfo: { modelName: model } })
+      apiConversationsUpdate({
+        id: conversationId,
+        modelInfo: { ...modelInfo, modelName: model }
+      })
     }
 
     const modelProvider = ai.getModelProvider(model)

@@ -5,7 +5,7 @@ import RealtimeAudio, { type RealtimeAudioRef } from '@/features/media/RealtimeA
 import { useConversation } from '@/hooks/useConversation'
 import { focusMessageAtom, viewTypeAtom } from '@/store'
 import type { IConversation } from '@/types/messagetypes'
-import { enhanceEventParams } from '@/utils'
+import { enhanceEventParams, resolveConversationTitle } from '@/utils'
 import { MessageState, ViewModel } from '@constants'
 import StopIcon from '@mui/icons-material/Stop'
 import { Box, IconButton, Stack, Typography } from '@mui/material'
@@ -119,6 +119,7 @@ const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
         <Typography
           variant="body1"
           noWrap
+          title={resolveConversationTitle(modelInfo)}
           sx={{
             fontWeight: widthItem?.expanded ? 'bold' : 'normal',
             maxWidth: isMobile ? '50%' : 'none',
@@ -126,7 +127,7 @@ const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
           }}
           onClick={() => expandToggle()}
         >
-          {modelInfo.alias || modelInfo.modelName}
+          {resolveConversationTitle(modelInfo)}
         </Typography>
 
         {/* realtime button */}
