@@ -48,7 +48,7 @@ const withLoading = <T extends (...args: never[]) => Promise<any>>(
   }) as T
 }
 
-// 用户登录鉴权相关 start -- 包含注册、登录、登出、获取用户信息
+/* 用户登录鉴权相关 -- 包含注册、登录、登出、获取用户信息 */
 export const apiLogin = withLoading(async (email: string) => {
   try {
     const result = await signIn({
@@ -105,7 +105,6 @@ export const apiLogout = withLoading(
   },
   { enableLoading: false }
 )
-// 用户登录鉴权相关 end
 
 export const apiPostRealtimeSession = withLoading(
   async (model: string, options: Record<string, unknown> = {}) => {

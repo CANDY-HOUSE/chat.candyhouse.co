@@ -117,7 +117,7 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
 
   const handleUpdate = async () => {
     if (!isEqual(valuesRef.current, originValuesRef.current)) {
-      const { jsonConfigRaw, disable, ...mI } = valuesRef.current
+      const { jsonConfigRaw, atWork, disable, ...mI } = valuesRef.current
       let success = true
 
       if (user?.isLogin) {

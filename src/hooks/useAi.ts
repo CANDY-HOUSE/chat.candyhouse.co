@@ -241,12 +241,13 @@ export const useAi = () => {
     let modelThought: string = '' // 模型的思考
     const model = getModelName(modelInfo.modelName)
 
-    // 回写 modelName，发送合并后的完整 modelInfo
+    // 回写 modelName；运行态字段不应持久化。
     if (model !== modelInfo.modelName) {
       updateModelInfo(conversationId, { modelName: model }, topicId)
+      const { atWork, disable, ...persistedModelInfo } = modelInfo
       apiConversationsUpdate({
         id: conversationId,
-        modelInfo: { ...modelInfo, modelName: model }
+        modelInfo: { ...persistedModelInfo, modelName: model }
       })
     }
 
@@ -260,52 +261,56 @@ export const useAi = () => {
     }
 
     // 请求模型回答
-    await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
-      if (data.error) {
-        if (data.statusCode === 403 && data.errorCode === 'FORBIDDEN') {
-          throw new Error(t('corporateUserOnly'))
+    try {
+      await apiStreamChat<StreamValue>(model, options, abortController, async (data) => {
+        if (data.error) {
+          if (data.statusCode === 403 && data.errorCode === 'FORBIDDEN') {
+            throw new Error(t('corporateUserOnly'))
+          }
+          throw new Error(data.error)
         }
-        throw new Error(data.error)
-      }
 
-      // 处理 refusal
-      if (data.finishReason === 'refusal') {
-        throw new Error(t('refusal'))
-      }
+        // 处理 refusal
+        if (data.finishReason === 'refusal') {
+          throw new Error(t('refusal'))
+        }
 
-      // 检查是否已中止
-      if (
-        checkAbortAndPushFinal({
-          conversationId,
-          toBeSendMessage,
-          abortController,
-          modelRes,
-          modelThought,
-          topicId
+        // 检查是否已中止
+        if (
+          checkAbortAndPushFinal({
+            conversationId,
+            toBeSendMessage,
+            abortController,
+            modelRes,
+            modelThought,
+            topicId
+          })
+        ) {
+          return
+        }
+
+        // 更新状态
+        chatStatus = data.done ? MessageState.finish : MessageState.start
+        modelThought += data.thoughtValue ?? ''
+
+        // 处理响应数据
+        await processStreamValue(data, modelRes, toBeSendMessage)
+
+        // 无内容更新时不推送消息
+        if (modelRes.length === 0) return
+
+        handlePushMessage(conversationId, toBeSendMessage, {
+          content: [...modelRes],
+          thoughtValue: modelThought,
+          status: chatStatus,
+          previousResponseId: data.done ? data.responseId : undefined,
+          topicId,
+          usages: data.usage
         })
-      ) {
-        return
-      }
-
-      // 更新状态
-      chatStatus = data.done ? MessageState.finish : MessageState.start
-      modelThought += data.thoughtValue ?? ''
-
-      // 处理响应数据
-      await processStreamValue(data, modelRes, toBeSendMessage)
-
-      // 无内容更新时不推送消息
-      if (modelRes.length === 0) return
-
-      handlePushMessage(conversationId, toBeSendMessage, {
-        content: [...modelRes],
-        thoughtValue: modelThought,
-        status: chatStatus,
-        previousResponseId: data.done ? data.responseId : undefined,
-        topicId,
-        usages: data.usage
       })
-    })
+    } finally {
+      updateModelInfo(conversationId, { atWork: false }, topicId)
+    }
   }
 
   /**
