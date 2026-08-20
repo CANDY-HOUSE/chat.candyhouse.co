@@ -401,6 +401,11 @@ export const useAi = () => {
       const { sendType = SendType.normal, topicId } = options || {}
       const toBeSendMessage = chat.createTplMsg(message.model, 'assistant', sendType) // 待发送给模型的消息
 
+      // 记录这次回答对应哪条用户消息，供 pushMessage 精确清除 isCurrentQuestion
+      if (message.role === 'user') {
+        toBeSendMessage.answeringClientId = message.clientId
+      }
+
       if (sendType === SendType.refresh) {
         if (message.role === 'assistant') {
           // 刷新模型消息

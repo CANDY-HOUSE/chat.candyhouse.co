@@ -305,7 +305,7 @@ export const apiMessagesCreate = withLoading(
   async (param: {
     body: IMessage & { topicId: string; uuid: string | null }
     conversationId: string
-    afterMessageId?: string
+    basedId?: string
   }) => {
     try {
       const result = await api.post<{

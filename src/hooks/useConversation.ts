@@ -14,10 +14,12 @@ import { useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
-// 会话内是否仍有消息处于生成中（同一会话可能有多条消息并发 refresh，
-// 不能用单次请求结束来判断整个会话已空闲，否则先完成的请求会把仍在生成的另一条打断）
+// 会话内是否仍有消息处于生成中或落库中
 export const isConversationBusy = (messages: IMessage[]): boolean =>
-  messages.some((msg) => msg.state === MessageState.loading || msg.state === MessageState.start)
+  messages.some(
+    (msg) =>
+      msg.state === MessageState.loading || msg.state === MessageState.start || msg.persisting
+  )
 
 export const useConversation = () => {
   const { t } = useTranslation()
@@ -343,12 +345,12 @@ export const useConversation = () => {
               messages[theMsgIndex] = { ...messages[theMsgIndex], ...message }
             }
 
-            return {
-              ...conv,
-              messages,
-              ...(isEnd &&
-                !isConversationBusy(messages) && { modelInfo: { ...conv.modelInfo, atWork: false } })
+            if (isEnd) {
+              const pushedMsg = messages.find((msg) => msg.clientId === message.clientId)
+              if (pushedMsg) pushedMsg.persisting = true
             }
+
+            return { ...conv, messages }
           })
 
           return updatedConvs
@@ -362,7 +364,15 @@ export const useConversation = () => {
               messageId: string
             } | null
 
-            const { sendType, basedId, isCurrentQuestion, createdAt, ..._message } = message
+            const {
+              sendType,
+              basedId,
+              isCurrentQuestion,
+              answeringClientId,
+              persisting,
+              createdAt,
+              ..._message
+            } = message
 
             // http request
             if (user?.isLogin) {
@@ -385,7 +395,7 @@ export const useConversation = () => {
                   result = await apiMessagesCreate({
                     conversationId,
                     body: msgCreateParam,
-                    afterMessageId: basedId
+                    basedId
                   })
                 } else {
                   await apiMessagesUpdate(conversationId, message.messageId!, msgUpdateParam)
@@ -417,6 +427,8 @@ export const useConversation = () => {
                     if (theMsg) {
                       delete theMsg.sendType
                       delete theMsg.basedId
+                      delete theMsg.persisting
+                      // answeringClientId 保留：refresh 这条消息时要靠它精确定位对应的 user 消息
 
                       if (result) {
                         theMsg.messageId = result.messageId
@@ -425,13 +437,24 @@ export const useConversation = () => {
                         theMsg.createdAt = new Date().toISOString()
                       }
 
-                      messages.forEach((msg) => {
-                        if (message.role === 'assistant') {
-                          delete msg.isCurrentQuestion
-                        }
-                      })
+                      // 只清掉这条回答对应的那条用户消息
+                      if (message.role === 'assistant' && answeringClientId) {
+                        const answeredMsg = messages.find(
+                          (msg) => msg.clientId === answeringClientId
+                        )
+                        if (answeredMsg) delete answeredMsg.isCurrentQuestion
+                      }
 
-                      return { ...conv, messages }
+                      // 只有这条消息真正落库完成后才允许清空 atWork——否则消息队列会在
+                      // 回答刚流完、还没写库时就把下一条提前发出去，导致后端按 createdAt
+                      // 排序时顺序错乱
+                      return {
+                        ...conv,
+                        messages,
+                        ...(!isConversationBusy(messages) && {
+                          modelInfo: { ...conv.modelInfo, atWork: false }
+                        })
+                      }
                     }
                   }
 
@@ -441,6 +464,27 @@ export const useConversation = () => {
             )
           } catch (error) {
             logger.error('Async operations failed:', error)
+
+            // 落库失败也要清掉 persisting 并放行队列，否则这个会话会永久卡在"忙碌"状态
+            updateConversations(
+              (prev) =>
+                prev.map((conv) => {
+                  if (conv.conversationId !== conversationId) return conv
+
+                  const messages = [...conv.messages]
+                  const theMsg = messages.find((msg) => msg.clientId === message.clientId)
+                  if (theMsg) delete theMsg.persisting
+
+                  return {
+                    ...conv,
+                    messages,
+                    ...(!isConversationBusy(messages) && {
+                      modelInfo: { ...conv.modelInfo, atWork: false }
+                    })
+                  }
+                }),
+              id
+            )
           }
         }
 

@@ -97,9 +97,11 @@ export interface IMessage {
   cacheControl?: boolean // messages 缓存标识
   previousResponseId?: string // 历史上下文分叉点
 
-  sendType?: SendType // 消息发送的方式(仅前端)
-  basedId?: string // 消息是基于哪条用户消息的回答（assistant消息专属）
-  isCurrentQuestion?: boolean // 是否当前提问问题(user消息专属)
+  basedId?: string // 消息是基于哪条用户消息的回答（assistant消息专属，会传给后端 basedId）
+  sendType?: SendType // 消息发送的方式（仅前端不落库）
+  isCurrentQuestion?: boolean // 是否当前提问问题（user消息专属，仅前端不落库）
+  answeringClientId?: string // 这条回答对应哪条用户消息的 clientId（assistant消息专属，仅前端不落库）
+  persisting?: boolean // 这条消息是否正在落库（仅前端不落库）
 }
 
 export interface ITopics {

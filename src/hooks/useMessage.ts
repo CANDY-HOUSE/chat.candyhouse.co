@@ -22,6 +22,10 @@ export const useMessage = () => {
       let chatMsgs: UnifiedInput[] = [] // 转换后的消息列表
       let basedId = clientId // 基于哪条用户消息的回答
 
+      // user 消息 clientId -> 它在 chatMsgs 中的下标，用于按 answeringClientId 精确回溯
+      // 对应的提问，而不是"数组里最近的一条 user 消息"（相邻多条 user 消息时后者会找错）
+      const userMsgIndexByClientId = new Map<string, number>()
+
       for (const msg of messages) {
         const isTheSendingMsg = msg.clientId === clientId // 是否是当前发送的消息
         const ret: UnifiedInput = {
@@ -79,12 +83,24 @@ export const useMessage = () => {
 
         chatMsgs.push(ret)
 
+        if (msg.role === 'user') {
+          userMsgIndexByClientId.set(msg.clientId, chatMsgs.length - 1)
+        }
+
         if (isTheSendingMsg) {
           if (sendType === SendType.refresh) {
             if (msg.role === 'assistant') {
-              const index = chatMsgs.findLastIndex((msg) => msg.role === 'user')
-              chatMsgs = chatMsgs.slice(0, index + 1)
-              basedId = messages[index]!.clientId
+              // 优先按 answeringClientId 精确定位这条回答对应的提问；找不到（如刷新页面后
+              // 该字段未落库的历史消息）再退化为"数组里最近的一条 user 消息"
+              const preciseIndex = msg.answeringClientId
+                ? userMsgIndexByClientId.get(msg.answeringClientId)
+                : undefined
+              const targetIndex =
+                preciseIndex !== undefined
+                  ? preciseIndex
+                  : chatMsgs.findLastIndex((m) => m.role === 'user')
+              chatMsgs = chatMsgs.slice(0, targetIndex + 1)
+              basedId = messages[targetIndex]!.clientId
             }
           }
           break
