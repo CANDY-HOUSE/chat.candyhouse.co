@@ -15,7 +15,7 @@ import { MessageState, SendType } from '@constants'
 import { useAtomValue } from 'jotai'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useConversation } from './useConversation'
+import { isConversationBusy, useConversation } from './useConversation'
 import { useMessage } from './useMessage'
 import { useModel } from './useModel'
 
@@ -309,7 +309,12 @@ export const useAi = () => {
         })
       })
     } finally {
-      updateModelInfo(conversationId, { atWork: false }, topicId)
+      // 同一会话内可能有其他消息仍在并发生成，只有全部结束才清空 atWork，
+      // 否则先完成的请求会把仍在生成的另一条的 loading 状态误关掉
+      const messages = getAttrValue(conversationId, 'messages', topicId) || []
+      if (!isConversationBusy(messages)) {
+        updateModelInfo(conversationId, { atWork: false }, topicId)
+      }
     }
   }
 

@@ -8,11 +8,16 @@ import { activeTopicIdAtom, conversationsFamily, store, switchToast, userAtom } 
 import type { IConversation, IMessage } from '@/types/messagetypes'
 import { getLocalValue, localKey, logger } from '@/utils'
 import { cacheControlStrategy } from '@/utils/cacheControlStrategy'
-import { Level, SendType } from '@constants'
+import { Level, MessageState, SendType } from '@constants'
 import { useAtomValue } from 'jotai'
 import { useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+
+// 会话内是否仍有消息处于生成中（同一会话可能有多条消息并发 refresh，
+// 不能用单次请求结束来判断整个会话已空闲，否则先完成的请求会把仍在生成的另一条打断）
+export const isConversationBusy = (messages: IMessage[]): boolean =>
+  messages.some((msg) => msg.state === MessageState.loading || msg.state === MessageState.start)
 
 export const useConversation = () => {
   const { t } = useTranslation()
@@ -341,7 +346,8 @@ export const useConversation = () => {
             return {
               ...conv,
               messages,
-              ...(isEnd && { modelInfo: { ...conv.modelInfo, atWork: false } })
+              ...(isEnd &&
+                !isConversationBusy(messages) && { modelInfo: { ...conv.modelInfo, atWork: false } })
             }
           })
 
