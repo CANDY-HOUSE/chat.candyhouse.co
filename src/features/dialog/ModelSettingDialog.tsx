@@ -42,7 +42,7 @@ const customStyle = {
 const AccordionSummary = styled((props: AccordionSummaryProps) => (
   <MuiAccordionSummary
     expandIcon={
-      <ArrowForwardIosSharpIcon sx={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }} />
+      <ArrowForwardIosSharpIcon sx={{ fontSize: '12px', color: 'var(--text-secondary)' }} />
     }
     {...props}
   />
@@ -232,7 +232,6 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
           placeholder={t('modelSetting.placeholder')}
           slotProps={{
             inputLabel: { shrink: true },
-            formHelperText: { sx: { fontSize: '0.6rem' } },
             input: {
               sx: {
                 position: 'relative',
@@ -308,7 +307,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
             <Typography
               component="span"
               sx={{
-                fontSize: '.6rem',
+                fontSize: '12px',
                 color: 'var(--text-secondary)'
               }}
             >
@@ -336,39 +335,37 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
         spacing={2}
         justifyContent={{ md: 'flex-end' }}
       >
-        <Box sx={{ display: 'flex', columnGap: 2 }}>
+        <Button
+          startIcon={<RestartAltIcon />}
+          onClick={handleReset}
+          variant="outlined"
+          size="small"
+          sx={actionButtonSx(theme)}
+        >
+          {t('modelSetting.reset')}
+        </Button>
+
+        {conversationId && (
           <Button
-            startIcon={<RestartAltIcon />}
-            onClick={handleReset}
+            startIcon={<FileUploadIcon />}
+            onClick={handleImport}
             variant="outlined"
             size="small"
             sx={actionButtonSx(theme)}
           >
-            {t('modelSetting.reset')}
+            {t('importChat')}
           </Button>
+        )}
 
-          {conversationId && (
-            <Button
-              startIcon={<FileUploadIcon />}
-              onClick={handleImport}
-              variant="outlined"
-              size="small"
-              sx={actionButtonSx(theme)}
-            >
-              {t('importChat')}
-            </Button>
-          )}
-
-          <Button
-            startIcon={<FileDownloadIcon />}
-            onClick={handleExport}
-            variant="outlined"
-            size="small"
-            sx={actionButtonSx(theme)}
-          >
-            {t('exportChat')}
-          </Button>
-        </Box>
+        <Button
+          startIcon={<FileDownloadIcon />}
+          onClick={handleExport}
+          variant="outlined"
+          size="small"
+          sx={actionButtonSx(theme)}
+        >
+          {t('exportChat')}
+        </Button>
       </Stack>
     </Stack>
   )
