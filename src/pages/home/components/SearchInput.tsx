@@ -90,7 +90,7 @@ const SearchInput: React.FC<Props> = ({ topicListRef }) => {
         width: isMobile ? '20rem' : '40rem',
         display: 'flex',
         flexDirection: 'column',
-        background: '#fff',
+        background: 'var(--surface-raised)',
         borderRadius: 'var(--radius-lg)'
       }}
     >
@@ -116,7 +116,7 @@ const SearchInput: React.FC<Props> = ({ topicListRef }) => {
 
             return (
               <Box sx={{ pr: 'var(--spacing-xs)' }}>
-                <Chip label={label} />
+                <Chip label={label} sx={{ fontSize: 'var(--font-size-sm)' }} />
               </Box>
             )
           }}
@@ -169,13 +169,13 @@ const SearchInput: React.FC<Props> = ({ topicListRef }) => {
               ),
               sx: {
                 '&:before': {
-                  borderBottomColor: 'var(--grey-500)'
+                  borderBottomColor: 'var(--border-default)'
                 },
                 '&:hover:not(.Mui-disabled):before': {
-                  borderBottomColor: 'var(--grey-500)'
+                  borderBottomColor: 'var(--border-default)'
                 },
                 '&:after': {
-                  borderBottomColor: 'var(--grey-500)'
+                  borderBottomColor: 'var(--border-default)'
                 }
               }
             },

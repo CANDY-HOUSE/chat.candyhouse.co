@@ -41,13 +41,15 @@ const customStyle = {
 
 const AccordionSummary = styled((props: AccordionSummaryProps) => (
   <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.7rem' }} />}
+    expandIcon={
+      <ArrowForwardIosSharpIcon sx={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }} />
+    }
     {...props}
   />
 ))(({ theme }) => ({
   padding: 0,
   minHeight: '38px!important',
-  backgroundColor: 'var(--color-background)',
+  backgroundColor: 'var(--surface-raised)',
   flexDirection: 'row-reverse',
   [`& .${accordionSummaryClasses.expandIconWrapper}`]: {
     margin: 0
@@ -75,7 +77,7 @@ const actionButtonSx = (theme: Theme) => ({
   whiteSpace: 'nowrap' as const,
   '&:hover': {
     borderColor: theme.palette.text.secondary,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+    backgroundColor: 'var(--bg-hover)'
   }
 })
 
@@ -230,7 +232,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
           placeholder={t('modelSetting.placeholder')}
           slotProps={{
             inputLabel: { shrink: true },
-            formHelperText: { sx: { fontSize: '0.65rem' } },
+            formHelperText: { sx: { fontSize: '0.6rem' } },
             input: {
               sx: {
                 position: 'relative',
@@ -246,7 +248,7 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
                     right: 8,
                     bottom: 6,
                     m: 0,
-                    bgcolor: '#fff',
+                    bgcolor: 'var(--surface-raised)',
                     borderRadius: 1,
                     maxWidth: 'calc(100% - 16px)'
                   }}
@@ -295,9 +297,23 @@ const ModelSettingDialog: React.FC<Props> = ({ conversationId, changeCache }) =>
       </Box>
 
       <Box sx={{ width: '100%' }}>
-        <Accordion sx={{ boxShadow: 'none' }}>
+        <Accordion
+          sx={{
+            boxShadow: 'none',
+            borderRadius: 'var(--radius-sm)',
+            overflow: 'hidden'
+          }}
+        >
           <AccordionSummary>
-            <Typography component="span">{t('modelSetting.configPreview')}</Typography>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: '.6rem',
+                color: 'var(--text-secondary)'
+              }}
+            >
+              {t('modelSetting.configPreview')}
+            </Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Typography

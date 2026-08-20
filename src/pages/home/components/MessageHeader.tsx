@@ -3,7 +3,7 @@ import { useMessageListContext } from '@/context/MessageListContext'
 import Settings from '@/features/common/Settings'
 import RealtimeAudio, { type RealtimeAudioRef } from '@/features/media/RealtimeAudio'
 import { useConversation } from '@/hooks/useConversation'
-import { focusMessageAtom, viewTypeAtom } from '@/store'
+import { focusMessageAtom, UI_CONSTANTS, viewTypeAtom } from '@/store'
 import type { IConversation } from '@/types/messagetypes'
 import { enhanceEventParams, resolveConversationTitle } from '@/utils'
 import { MessageState, ViewModel } from '@constants'
@@ -21,7 +21,7 @@ const customStyle = {
   container: {
     position: 'absolute',
     zIndex: 999,
-    height: '2.6rem',
+    height: UI_CONSTANTS.messageHeaderHeight,
     width: '100%',
     left: 0,
     top: 0
@@ -102,7 +102,7 @@ const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
     <Box sx={{ ...customStyle.container }}>
       <Stack
         sx={{
-          background: 'rgba(255, 255, 255, 0.6)',
+          background: 'var(--header-overlay-bg)',
           backdropFilter: 'blur(8px)',
           zIndex: 1,
           position: 'absolute',

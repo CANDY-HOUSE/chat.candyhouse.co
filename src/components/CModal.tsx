@@ -23,7 +23,9 @@ export const CModal: React.FC<Props> = ({ open, children, onClose, disableClose 
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          background: 'var(--color-background)',
+          // 弹窗外框用画布层，内部的输入框/下拉/折叠面板走 --surface-raised（见 theme.ts），
+          // 两者必须不同色阶，否则弹窗内的控件会和外框融成一片
+          background: 'var(--surface-canvas)',
           borderRadius: 'var(--radius-md)'
         }}
       >

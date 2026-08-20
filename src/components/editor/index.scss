@@ -113,7 +113,7 @@
 .left-block {
   display: flex;
   align-items: center;
-  background-color: #fff;
+  background-color: var(--page-background);
   z-index: 1;
   column-gap: 0.3rem;
   // overflow-x: auto;
@@ -133,8 +133,8 @@
 
   .file-container {
     outline: none;
-    background: #fff;
-    border: 1px solid rgb(224, 224, 224);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
     display: inline-flex;
     align-items: center;
     padding: 8px 12px;
@@ -173,13 +173,13 @@
 
     .file-info__name {
       font-size: inherit;
-      color: 'var(--text-primary)';
+      color: var(--text-primary);
       margin-bottom: 4px;
     }
 
     .file-info__size {
       font-size: 12px;
-      color: 'var(--text-secondary)';
+      color: var(--text-secondary);
     }
   }
 }

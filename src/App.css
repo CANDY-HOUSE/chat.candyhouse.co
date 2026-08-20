@@ -15,6 +15,15 @@
   outline: none;
 }
 
+/* quill.snow.css 把 .ql-container 写死成 font-family:Helvetica,Arial,sans-serif;font-size:13px，
+   会导致用户消息（UserMessage 展示时套了 ql-container 类）和走 MUI Typography 的 AI 消息
+   （Markdown.tsx）字体不一致，也不跟随语言/字号设置。这里强制恢复正常继承，
+   用 !important 是因为 quill 样式表的加载顺序不受我们控制，普通优先级无法保证覆盖 */
+.ql-container {
+  font-family: inherit !important;
+  font-size: inherit !important;
+}
+
 .img-perfect-fit {
   display: block;
   width: 100% !important;
@@ -60,7 +69,7 @@
   .global-scrollbar {
     overflow: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 
   .global-scrollbar::-webkit-scrollbar {
@@ -73,18 +82,18 @@
   }
 
   .global-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.12);
+    background-color: var(--scrollbar-thumb);
     border-radius: 4px;
     border: 1px solid transparent;
     background-clip: content-box;
   }
 
   .global-scrollbar:hover {
-    scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
+    scrollbar-color: var(--scrollbar-thumb-hover) transparent;
   }
 
   .global-scrollbar:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: var(--scrollbar-thumb-hover);
   }
 }
 

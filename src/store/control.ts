@@ -13,7 +13,8 @@ export const UI_CONSTANTS = {
   mobileEditorHeight: 90,
   sideBarWidth: 310,
   mobileSideBarWidth: 220,
-  chatMinWidth: 375 // 对话列表最小宽度
+  chatMinWidth: 375, // 对话列表最小宽度
+  messageHeaderHeight: '2.6rem' // MessageHeader 吸顶条高度
 } as const
 
 // ========== Utility Functions ==========

@@ -43,7 +43,7 @@ const IOSSwitch = styled(
   },
   '& .MuiSwitch-track': {
     borderRadius: 'calc(var(--icon-size) * 3 / 8)',
-    backgroundColor: 'var(--grey-200)',
+    backgroundColor: 'var(--surface-track)',
     opacity: 1,
     transition: theme.transitions.create(['background-color'], {
       duration: 500

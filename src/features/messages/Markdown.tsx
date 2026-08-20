@@ -332,7 +332,9 @@ function CodeBlock({ children = [], className, hiddenCodeCopyButton, fontSize }:
         justifyContent="space-between"
         alignItems="center"
         sx={{
-          backgroundColor: 'rgb(50, 50, 50)',
+          // 与下方 SyntaxHighlighter 所选主题的背景保持一致，避免两段深色出现可见接缝；
+          // 代码块本身有意保持深色，不随应用的明暗主题切换
+          backgroundColor: theme.palette.mode === 'dark' ? '#1d1f21' : '#2b2b2b',
           borderTopLeftRadius: 'var(--radius-sm)',
           borderTopRightRadius: 'var(--radius-sm)',
           px: 'var(--spacing-xs)'

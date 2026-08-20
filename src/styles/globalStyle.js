@@ -1,3 +1,5 @@
+import { darkColors, lightColors } from './colorTokens'
+
 export const globalStyles = {
   ':root': {
     /* 响应式单位 */
@@ -34,7 +36,18 @@ export const globalStyles = {
     '--grey-hover': 'var(--grey-200)',
 
     /* 按钮颜色 */
-    '--button--primary': '#28aeb1',
+    '--button--primary': lightColors.accentPrimary,
+
+    /* 表面层级语义变量（画布 < 内容 < 浮起 < 选中，明暗两侧保持同一套语义） */
+    '--surface-canvas': lightColors.surfaceCanvas /* 应用画布：侧边栏 chrome、主内容区 */,
+    '--surface-content': lightColors.surfaceContent /* 内容表面：话题列表、消息气泡 */,
+    '--surface-raised': lightColors.surfaceRaised /* 浮起层：菜单、弹窗、输入框 */,
+    '--surface-selected': lightColors.surfaceSelected /* 选中/悬停高亮 */,
+    '--surface-track': lightColors.surfaceTrack /* 开关轨道（关闭态） */,
+    '--header-overlay-bg': lightColors.headerOverlayBg /* 吸顶毛玻璃遮罩 */,
+    '--scrollbar-thumb': lightColors.scrollbarThumb,
+    '--scrollbar-thumb-hover': lightColors.scrollbarThumbHover,
+    '--page-background': lightColors.pageBackground /* 对应 MUI background.default，如登录页整页背景 */,
 
     /* 间距变量 */
     '--spacing-xs': 'clamp(0.25rem, 0.25rem + 0.25vw, 0.5rem)',
@@ -69,6 +82,46 @@ export const globalStyles = {
           #E74C3C 50%,
           #F1C40F 75%,
           #27AE60 100%)`
+  },
+
+  /* 深色模式：仅覆盖颜色相关的语义变量，间距/字号/圆角与浅色保持一致 */
+  '.theme-dark': {
+    colorScheme: 'dark',
+
+    '--grey-50': '#161b22',
+    '--grey-100': '#1c2128',
+    '--grey-200': '#22272e',
+    '--grey-300': '#2d333b',
+    '--grey-400': darkColors.borderDefault,
+    '--grey-500': darkColors.textDisabled,
+    '--grey-600': darkColors.iconMuted,
+    '--grey-700': darkColors.textSecondary,
+    '--grey-800': '#c9d1d9',
+    '--grey-900': darkColors.textPrimary,
+
+    '--text-primary': darkColors.textPrimary,
+    '--text-secondary': darkColors.textSecondary,
+    '--text-disabled': darkColors.textDisabled,
+    '--bg-disabled': darkColors.bgDisabled,
+    '--border-default': darkColors.borderDefault,
+    '--divider': darkColors.divider /* 与 border-default 分开取值，避免深色下与边框叠成同一层 */,
+    '--bg-hover': darkColors.bgHover,
+    '--bg-paper': darkColors.surfaceContent,
+    '--icon-muted': darkColors.iconMuted,
+    '--color-background': darkColors.surfaceCanvas,
+    '--grey-hover': darkColors.bgHover /* 深色下不能再等同 --color-background，否则悬停态和画布同色不可见 */,
+
+    '--button--primary': darkColors.accentPrimary,
+
+    '--surface-canvas': darkColors.surfaceCanvas,
+    '--surface-content': darkColors.surfaceContent,
+    '--surface-raised': darkColors.surfaceRaised,
+    '--surface-selected': darkColors.surfaceSelected,
+    '--surface-track': darkColors.surfaceTrack,
+    '--header-overlay-bg': darkColors.headerOverlayBg,
+    '--scrollbar-thumb': darkColors.scrollbarThumb,
+    '--scrollbar-thumb-hover': darkColors.scrollbarThumbHover,
+    '--page-background': darkColors.pageBackground
   },
 
   html: {

@@ -86,7 +86,12 @@ export const UserMessage: React.FC<Props> = ({ blocks, markKey, className }) => 
         <Typography
           variant="body1"
           key={`text-${keySuffix}`}
-          sx={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', maxWidth: '100%' }}
+          sx={{
+            color: 'var(--text-primary)',
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+            maxWidth: '100%'
+          }}
         >
           {highlightText(content, highlightKey)}
         </Typography>
@@ -147,7 +152,11 @@ export const UserMessage: React.FC<Props> = ({ blocks, markKey, className }) => 
       <Box
         className="ql-editor"
         sx={{
-          padding: 0,
+          p: '0 !important',
+          // 显式指定文字颜色，不依赖继承链（quill-delta-to-html 默认不内联颜色，
+          // 但继承链一旦被中间某层意外覆盖就会导致对比度不够，直接钉死更稳妥）；
+          // 用户在编辑器里主动选过颜色的文字走 .ql-color-* 类选择器，优先级更高，不受影响
+          color: 'var(--text-primary)',
           whiteSpace: 'normal',
           wordWrap: 'break-word',
           wordBreak: 'normal',

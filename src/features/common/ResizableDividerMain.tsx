@@ -22,7 +22,7 @@ export const ResizableDividerMain: React.FC<Props> = ({
   const [isDragging, setIsDragging] = useState(false)
   const [initWidth, setInitWidth] = useState<number>(-1)
   const sxSty = useMemo(() => {
-    const bg = isDragging ? 'var(--grey-400)' : '#fff'
+    const bg = isDragging ? 'var(--grey-400)' : 'var(--color-background)'
 
     const result = {
       cursor: 'ew-resize',

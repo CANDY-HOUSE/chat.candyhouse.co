@@ -4,8 +4,8 @@
 	 viewBox="0 0 200 200" style="enable-background:new 0 0 200 200;" xml:space="preserve">
 <style type="text/css">
 	.st0{display:none;}
-	.st1{display:inline;fill:#313538;}
-	.st2{fill:#313538;}
+	.st1{display:inline;fill:currentColor;}
+	.st2{fill:currentColor;}
 </style>
 <g id="GPT" class="st0">
 	<path class="st1" d="M171.4,84.9c2.1-5.7,2.6-11.5,2.1-17.2c-0.5-5.7-2.6-11.5-5.2-16.7c-4.7-7.8-11.5-14.1-19.3-17.7

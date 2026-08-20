@@ -1,6 +1,8 @@
 import { getLocalValue, localKey, putLocalValue } from '@/utils'
+import { darkColors, lightColors } from '@/styles/colorTokens'
 import { createTheme, type Theme } from '@mui/material/styles'
-import { atom, getDefaultStore } from 'jotai'
+import { atom } from 'jotai'
+import { store } from './index'
 
 declare module '@mui/material/styles' {
   interface Theme {
@@ -17,15 +19,31 @@ export const BeanTheme = {
   dark: 'dark'
 } as const
 
-const createCustomTheme = (_mode: string): Theme => {
+const getInitialMode = (): string => {
+  const stored = getLocalValue(localKey.theme) as string | null
+  if (stored === BeanTheme.dark || stored === BeanTheme.light) return stored
+  const prefersDark =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  return prefersDark ? BeanTheme.dark : BeanTheme.light
+}
+
+const createCustomTheme = (mode: string): Theme => {
+  const tokens = mode === BeanTheme.dark ? darkColors : lightColors
+
   return createTheme({
     palette: {
+      mode: mode === BeanTheme.dark ? 'dark' : 'light',
       text: {
-        primary: '#1a1e23',
-        secondary: '#757575'
+        primary: tokens.textPrimary,
+        secondary: tokens.textSecondary
       },
       background: {
-        default: '#fff'
+        // default 对应 pageBackground（浅色纯白，深色画布色，供整页背景如登录页使用）；
+        // paper 对应 surfaceRaised（菜单/弹窗/卡片），两者语义不同，避免 MUI 回退到自带的 #121212
+        default: tokens.pageBackground,
+        paper: tokens.surfaceRaised
       }
     },
     typography: {
@@ -94,7 +112,7 @@ const createCustomTheme = (_mode: string): Theme => {
         styleOverrides: {
           root: {
             fontSize: 'inherit',
-            color: '#8f8f8f'
+            color: tokens.textSecondary
           }
         }
       },
@@ -102,7 +120,7 @@ const createCustomTheme = (_mode: string): Theme => {
       MuiSelect: {
         styleOverrides: {
           select: {
-            backgroundColor: '#fff',
+            backgroundColor: tokens.surfaceRaised,
             fontSize: 'inherit'
           },
           outlined: {
@@ -115,6 +133,31 @@ const createCustomTheme = (_mode: string): Theme => {
         styleOverrides: {
           root: {
             fontSize: 'inherit'
+          }
+        }
+      },
+
+      // 深色模式下 boxShadow 层级感很弱，菜单/弹层改用边框分层
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            border: `1px solid ${tokens.borderDefault}`
+          }
+        }
+      },
+
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            border: `1px solid ${tokens.borderDefault}`
+          }
+        }
+      },
+
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            border: `1px solid ${tokens.borderDefault}`
           }
         }
       },
@@ -167,7 +210,7 @@ const createCustomTheme = (_mode: string): Theme => {
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
               border: 'none'
             },
-            backgroundColor: '#fff',
+            backgroundColor: tokens.surfaceRaised,
             borderRadius: 'var(--radius-sm)'
           }
         }
@@ -178,17 +221,15 @@ const createCustomTheme = (_mode: string): Theme => {
 const lightTheme = createCustomTheme(BeanTheme.light)
 const darkTheme = createCustomTheme(BeanTheme.dark)
 
-export const themeAtom = atom<Theme>(
-  getLocalValue(localKey.theme) === BeanTheme.dark ? darkTheme : lightTheme
-)
+const initialMode = getInitialMode()
 
-export const mThemeValueAtom = atom<string>(
-  (getLocalValue(localKey.theme) as string) || BeanTheme.light
-)
+export const themeAtom = atom<Theme>(initialMode === BeanTheme.dark ? darkTheme : lightTheme)
+
+export const mThemeValueAtom = atom<string>(initialMode)
 
 export const changeTheme = (themeName: string) => {
   const newTheme = themeName === BeanTheme.dark ? darkTheme : lightTheme
   putLocalValue(localKey.theme, themeName)
-  getDefaultStore().set(mThemeValueAtom, themeName)
-  getDefaultStore().set(themeAtom, newTheme)
+  store.set(mThemeValueAtom, themeName)
+  store.set(themeAtom, newTheme)
 }

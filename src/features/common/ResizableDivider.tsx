@@ -99,11 +99,11 @@ export const ResizableDivider: React.FC<Props> = ({
             zIndex: 99,
             position: 'absolute',
             left: '50%',
-            top: 0,
+            top: '1px',
             transform: 'translateX(-50%)',
             color: 'var(--grey-400)',
             cursor: 'pointer',
-            backgroundColor: '#fff',
+            backgroundColor: 'var(--surface-raised)',
             display: 'flex',
             justifyContent: 'center',
             px: '26px',
@@ -112,7 +112,7 @@ export const ResizableDivider: React.FC<Props> = ({
             borderRight: `${UI_CONSTANTS.resizeLineWidth}px solid`,
             borderBottomLeftRadius: '8px',
             borderBottomRightRadius: '8px',
-            borderColor: 'var(--grey-200)'
+            borderColor: 'var(--grey-300)'
           }}
         >
           <DragIndicatorIcon

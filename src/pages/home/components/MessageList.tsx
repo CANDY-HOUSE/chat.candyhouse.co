@@ -45,7 +45,7 @@ const customStyle = {
   },
   fastScrollBox: {
     position: 'absolute',
-    right: '.1rem',
+    right: '-.2rem',
     bottom: '1rem',
     zIndex: 1000
   }
@@ -431,7 +431,7 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
                 key={message.clientId}
                 data-message-id={message.messageId}
                 style={{
-                  marginTop: index === 0 ? '2.6rem' : 0
+                  marginTop: index === 0 ? '3.6rem' : 0
                 }}
               >
                 <MessageItem

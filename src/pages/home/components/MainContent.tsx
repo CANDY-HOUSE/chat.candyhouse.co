@@ -256,8 +256,7 @@ const HomeRightPanel = () => {
               flex: 'auto',
               display: 'flex',
               flexDirection: 'row',
-              pr: '184px',
-              background: conversations.length > 0 ? 'var(--color-background)' : '#fff'
+              background: 'var(--color-background)'
             }}
           >
             <LayoutGroup>
@@ -286,7 +285,7 @@ const HomeRightPanel = () => {
                           overflow: 'hidden',
                           height: '100%',
                           flex: 'none',
-                          bgcolor: '#fff'
+                          bgcolor: 'var(--color-background)'
                         }}
                       >
                         <ConversationItem convAtom={atom} />
@@ -304,6 +303,23 @@ const HomeRightPanel = () => {
                 })}
               </AnimatePresence>
             </LayoutGroup>
+
+            {/* 右侧预留给外部悬浮 UI 的留白；顶部叠一层和 MessageHeader 同色的吸顶条，
+                避免头部背景在这段留白处断开出现接缝 */}
+            <Box sx={{ flex: 'none', width: '184px', position: 'relative' }}>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  zIndex: 999,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: UI_CONSTANTS.messageHeaderHeight,
+                  background: 'var(--header-overlay-bg)',
+                  backdropFilter: 'blur(8px)'
+                }}
+              />
+            </Box>
           </Box>
         )}
 

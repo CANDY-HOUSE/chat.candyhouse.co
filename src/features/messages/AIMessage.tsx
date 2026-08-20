@@ -63,7 +63,11 @@ export const AIMessage: React.FC<AIMessageProps> = ({
           max={6}
         >
           {annotations.map((url: string, index: number) => (
-            <Avatar sx={{ background: '#fff', overflow: 'hidden' }} src={url} key={index} />
+            <Avatar
+              sx={{ background: 'var(--surface-raised)', overflow: 'hidden' }}
+              src={url}
+              key={index}
+            />
           ))}
         </AvatarGroup>
         <Typography sx={{ color: 'var(--text-secondary)', fontSize: '12px' }}>

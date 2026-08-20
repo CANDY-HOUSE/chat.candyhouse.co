@@ -63,7 +63,7 @@ export const CSelect: React.FC<Props> = ({
             sx: {
               mt: 0,
               mb: 0,
-              bgcolor: 'var(--grey-200)'
+              bgcolor: 'var(--surface-raised)'
             }
           },
           MenuListProps: {

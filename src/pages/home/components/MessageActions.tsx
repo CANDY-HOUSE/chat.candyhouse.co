@@ -98,7 +98,6 @@ const MessageActions: React.FC<Props> = ({
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: '.3rem',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
         p: '.1rem .2rem'
       }}
     >

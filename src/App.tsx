@@ -15,7 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { MessageListProvider } from './context/MessageListContext'
 import i18n from './i18n'
 import RoutesComponent from './router/RoutesComponent'
-import { fontSizeAtom, languageAtom, modelSelectAtom, store, themeAtom } from './store'
+import { BeanTheme, fontSizeAtom, languageAtom, mThemeValueAtom, modelSelectAtom, store, themeAtom } from './store'
 
 Amplify.configure({
   Auth: {
@@ -36,6 +36,7 @@ Amplify.configure({
 
 const AppContent: FC = (): JSX.Element => {
   const atomTheme = useAtomValue(themeAtom)
+  const themeMode = useAtomValue(mThemeValueAtom)
   const fontSize = useAtomValue(fontSizeAtom)
   const language = useAtomValue(languageAtom)
   const setModelSelect = useSetAtom(modelSelectAtom)
@@ -61,6 +62,11 @@ const AppContent: FC = (): JSX.Element => {
     document.documentElement.classList.remove('lang-ja', 'lang-zh', 'lang-zhTw', 'lang-en')
     document.documentElement.classList.add(`lang-${language}`)
   }, [language])
+
+  // 响应深色模式切换（首屏白闪由 public/index.html 里的内联脚本提前处理）
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-dark', themeMode === BeanTheme.dark)
+  }, [themeMode])
 
   // 初始化
   useEffect(() => {

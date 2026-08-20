@@ -517,7 +517,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
                   sx={{
                     pl: 'var(--spacing-sm)',
                     '&.Mui-selected': {
-                      bgcolor: 'var(--grey-200)'
+                      bgcolor: 'var(--surface-selected)'
                     }
                   }}
                 >
@@ -538,7 +538,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
               </ListItem>
 
               <Collapse in={item.id === activeTopicId} timeout="auto" unmountOnExit>
-                <List component="div" sx={{ background: 'var(--grey-50)' }}>
+                <List component="div" sx={{ background: 'var(--surface-content)' }}>
                   <DragList<IConversation>
                     items={conversations}
                     itemId={(value) => value.modelId}
@@ -566,7 +566,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
                               sx={{
                                 transform: isMobile ? 'scale(1)' : 'scale(0.8)',
                                 '&.Mui-checked': {
-                                  color: '#000'
+                                  color: 'var(--text-primary)'
                                 }
                               }}
                             />

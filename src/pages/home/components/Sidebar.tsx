@@ -8,7 +8,10 @@ import { useModel } from '@/hooks/useModel'
 import {
   activeModelSelectAtom,
   activeTopicIdAtom,
+  BeanTheme,
+  changeTheme,
   isShowSideBarAtom,
+  mThemeValueAtom,
   previewModelSelectAtom,
   sideBarWidthAtom,
   switchDialog,
@@ -23,10 +26,12 @@ import { apiConversationsGet, apiTopicsCreate, apiTopicsGet } from '@api'
 import { icons } from '@assets/icons'
 import { Level, ModelCategory } from '@constants'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
 import SearchIcon from '@mui/icons-material/Search'
 import SettingsIcon from '@mui/icons-material/Settings'
 import UpdateIcon from '@mui/icons-material/Update'
-import { Box, Menu, MenuItem, Stack, Typography } from '@mui/material'
+import { Box, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/material'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import React, { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -38,6 +43,7 @@ const Sidebar = () => {
   const { t } = useTranslation()
   const { isMobile } = useMediaQueryContext()
   const activeModelSelect = useAtomValue(activeModelSelectAtom)
+  const themeMode = useAtomValue(mThemeValueAtom)
   const isShowSideBar = useAtomValue(isShowSideBarAtom)
   const sideBarW = useAtomValue(sideBarWidthAtom)
   const version = useAtomValue(versionInfo)
@@ -171,6 +177,11 @@ const Sidebar = () => {
     setLoading(false)
   }
 
+  // 切换深色/浅色模式
+  const handleToggleTheme = () => {
+    changeTheme(themeMode === BeanTheme.dark ? BeanTheme.light : BeanTheme.dark)
+  }
+
   // 升级模型
   const handlePromoteModel = async () => {
     if (!user?.isLogin || promoteLoading) return
@@ -202,7 +213,7 @@ const Sidebar = () => {
         transition: 'width 225ms cubic-bezier(0, 0, 0.2, 1)',
         width: `${isShowSideBar ? sideBarWidth : 0}px`,
         flex: 'none',
-        background: 'var(--color-background)'
+        background: 'var(--surface-canvas)'
       }}
       direction="column"
       alignItems="stretch"
@@ -249,7 +260,7 @@ const Sidebar = () => {
           <SearchIcon sx={{ color: 'var(--text-secondary)', fontSize: 'var(--icon-size)' }} />
           <Box
             sx={{
-              bgcolor: '#fff',
+              bgcolor: 'var(--surface-raised)',
               p: '2px 4px',
               border: '1px solid var(--text-secondary)',
               borderRadius: '6px',
@@ -269,7 +280,7 @@ const Sidebar = () => {
           flex: 'auto',
           overflowX: 'hidden',
           overflowY: 'auto',
-          bgcolor: 'var(--grey-50)'
+          bgcolor: 'var(--surface-content)'
         }}
       >
         <TopicList ref={topicListRef} loading={loading} />
@@ -313,6 +324,13 @@ const Sidebar = () => {
               tooltip={t('set')}
               icon={<SettingsIcon sx={{ fontSize: 'var(--icon-size-small)' }} />}
             ></TooltipButton>
+            <IconButton onClick={handleToggleTheme} sx={{ color: 'inherit' }}>
+              {themeMode === BeanTheme.dark ? (
+                <LightModeOutlinedIcon sx={{ fontSize: 'var(--icon-size-small)' }} />
+              ) : (
+                <DarkModeOutlinedIcon sx={{ fontSize: 'var(--icon-size-small)' }} />
+              )}
+            </IconButton>
             {user?.isLogin && promoteInfo && (
               <TooltipButton
                 loading={promoteLoading}

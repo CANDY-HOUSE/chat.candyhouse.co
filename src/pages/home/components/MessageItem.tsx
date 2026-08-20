@@ -148,7 +148,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
       sx={{
         position: 'relative',
         mt: 'var(--spacing-xs)',
-        pb: '2.6rem',
+        pb: '2rem',
         overflowX: 'hidden',
         width: '100%',
         '@media (hover: hover)': {
@@ -178,7 +178,11 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
         }
       }}
     >
-      <Stack direction="row" spacing={2} sx={{ px: 'var(--spacing-sm)', overflow: 'hidden' }}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ pl: 'var(--spacing-sm)', pr: 'var(--spacing-md)', overflow: 'hidden' }}
+      >
         <Box sx={{ flex: 'none' }}>
           <AiAvatarIcon role={role} model={model} />
         </Box>
@@ -216,7 +220,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
             <Box
               sx={{
                 position: 'relative',
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--surface-content)',
                 borderRadius: '6px',
                 padding: 'var(--spacing-sm)',
                 zIndex: 1
@@ -243,7 +247,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
           display: hovered ? 'block' : 'none',
           position: 'absolute',
           bottom: '5px',
-          left: '3rem'
+          right: 'var(--spacing-sm)'
         }}
       >
         <MessageActions

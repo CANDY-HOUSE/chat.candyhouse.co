@@ -4,6 +4,29 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#fff" />
+    <script>
+      // 在 React 挂载前根据已保存的偏好（或系统深色偏好）提前打上 theme-dark，避免刷新时先白后黑的闪烁。
+      // 判断逻辑需要和 src/store/theme.ts 的 getInitialMode() 保持一致。
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('theme')
+          var mode = stored ? JSON.parse(stored) : null
+          var isDark =
+            mode === 'dark' ||
+            (mode !== 'light' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (isDark) {
+            var html = document.documentElement
+            html.classList.add('theme-dark')
+            html.style.colorScheme = 'dark'
+            html.style.backgroundColor = '#161b22'
+            var meta = document.querySelector('meta[name="theme-color"]')
+            if (meta) meta.setAttribute('content', '#161b22')
+          }
+        } catch (e) {}
+      })()
+    </script>
     <meta
       name="description"
       content="Gemini, Claude, GPT, Grok, Deepseek, GPT-Realtime, Soraなど、主要なAIモデルと同時に会話できる次世代チャットプラットフォーム。リアルタイムWeb検索、過去の会話履歴、多言語対応で、あなたのAI体験を革新します。"

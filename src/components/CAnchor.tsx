@@ -72,7 +72,7 @@ export const CAnchor: React.FC<Props> = ({ children, config, onClose }) => {
       sx: {
         '& .MuiPopover-paper': {
           ...ANCHOR_STYLES.paper,
-          background: '#fff'
+          background: 'var(--surface-raised)'
         }
       }
     }
@@ -80,7 +80,7 @@ export const CAnchor: React.FC<Props> = ({ children, config, onClose }) => {
 
   return (
     <Popover {...popoverProps}>
-      <Box sx={{ background: '#fff' }}>{children}</Box>
+      <Box sx={{ background: 'var(--surface-raised)' }}>{children}</Box>
     </Popover>
   )
 }
