@@ -557,10 +557,7 @@ const Editor = forwardRef<EditorHandle, Props>(
             const currentContent = quill.getContents()
             const isEmpty = checkIsEmpty(currentContent)
 
-            if (!embedRef.current) {
-              setIsEditorEmpty(isEmpty)
-            }
-
+            setIsEditorEmpty(isEmpty)
             createDraftRef.current(isEmpty ? null : currentContent) // 创建草稿
             onTextChangeRef.current?.(args[0] as Delta, currentContent)
           } else if (eventName === 'selection-change') {

@@ -120,7 +120,7 @@ const LoginPage: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   underline="hover"
-                  sx={{ color: 'teal', mx: 'var(--spacing-xs)' }}
+                  sx={{ color: 'var(--accent--primary)', mx: 'var(--spacing-xs)' }}
                 >
                   {t('termsofuse')}
                 </Link>
@@ -131,7 +131,7 @@ const LoginPage: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   sx={{
-                    color: 'teal',
+                    color: 'var(--accent--primary)',
                     mx: 'var(--spacing-xs)'
                   }}
                 >
@@ -146,7 +146,7 @@ const LoginPage: React.FC = () => {
                 onClick={handleEmailSubmit}
                 sx={{
                   width: '100%',
-                  backgroundColor: 'var(--button--primary)',
+                  backgroundColor: 'var(--accent--primary)',
                   color: '#ffffff',
                   '&.Mui-disabled': {
                     backgroundColor: 'var(--bg-disabled)',
@@ -199,7 +199,7 @@ const LoginPage: React.FC = () => {
                 justifyContent="center"
                 spacing={1}
                 sx={{
-                  color: 'var(--button--primary)',
+                  color: 'var(--accent--primary)',
                   cursor: 'pointer'
                 }}
                 onClick={handleBack}

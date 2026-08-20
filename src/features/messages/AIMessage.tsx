@@ -7,6 +7,7 @@ import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import { useTheme } from '@mui/material/styles'
 import Typography from '@mui/material/Typography'
+import { chat } from '@utils'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LoadingDots } from '../../components/LoadingDots'
@@ -78,24 +79,10 @@ export const AIMessage: React.FC<AIMessageProps> = ({
   }, [annotations, t])
 
   useEffect(() => {
-    let answer = ''
-    // 解析 content
-    content.forEach((item) => {
-      switch (item.type) {
-        case 'text':
-        case 'video':
-          answer += item.content
-          break
-        case 'image':
-          answer += `\n![Generated Image](${item.url})\n`
-          break
-      }
-    })
-
     setData((prev) => ({
       ...prev,
       thinking: thoughtValue,
-      answer
+      answer: chat.blocksToMarkdown(content)
     }))
   }, [content, thoughtValue])
 

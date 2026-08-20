@@ -244,6 +244,25 @@ const createTplConv = (topicId: string, model: string): IConversation => {
   }
 }
 
+// 将 ContentBlock 数组拼接为 AI 消息展示所用的 markdown 源文本
+const blocksToMarkdown = (blocks: ContentBlock[]): string => {
+  let text = ''
+
+  blocks.forEach((block) => {
+    switch (block.type) {
+      case 'text':
+      case 'video':
+        text += block.content
+        break
+      case 'image':
+        text += `\n![Generated Image](${block.url})\n`
+        break
+    }
+  })
+
+  return text
+}
+
 // 统计 ContentBlock 数组中所有文本块的字符数
 const countContentBlocksChars = (blocks: ContentBlock[]): number => {
   let totalChars = 0
@@ -269,5 +288,6 @@ export const chat = {
   createFileBlock,
   createTplMsg,
   createTplConv,
-  countContentBlocksChars
+  countContentBlocksChars,
+  blocksToMarkdown
 }

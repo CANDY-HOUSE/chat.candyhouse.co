@@ -1,6 +1,7 @@
 import { AiAvatarIcon } from '@/components/AiAvatarIcon'
 import { LoadingDots } from '@/components/LoadingDots'
 import EditorPanelInner from '@/features/editor/EditorPanelInner'
+import MarkdownEditorPanel from '@/features/editor/MarkdownEditorPanel'
 import { AIMessage } from '@/features/messages/AIMessage'
 import { Markdown } from '@/features/messages/Markdown'
 import { UserMessage } from '@/features/messages/UserMessage'
@@ -8,7 +9,7 @@ import { useConversation } from '@/hooks/useConversation'
 import { useMessage } from '@/hooks/useMessage'
 import { store, userAtom, workingModelsAtom } from '@/store'
 import { type ContentBlock, type IMessage } from '@/types/messagetypes'
-import { utils } from '@/utils'
+import { chat, utils } from '@/utils'
 import { apiMessagesUpdate } from '@api'
 import { MessageState } from '@constants'
 import { Stack, Typography } from '@mui/material'
@@ -53,10 +54,16 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
   const isDragging = useRef(false)
 
   const editInitContentRef = useRef<ContentBlock[] | undefined>(undefined)
+  const editInitTextRef = useRef<string | undefined>(undefined)
   if (state === MessageState.edit) {
-    if (editInitContentRef.current === undefined) editInitContentRef.current = content
+    if (role === 'user') {
+      if (editInitContentRef.current === undefined) editInitContentRef.current = content
+    } else {
+      if (editInitTextRef.current === undefined) editInitTextRef.current = chat.blocksToMarkdown(content)
+    }
   } else {
     editInitContentRef.current = undefined
+    editInitTextRef.current = undefined
   }
 
   const { updateMessage } = useConversation()
@@ -116,16 +123,54 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
     []
   )
 
+  const handleMarkdownSubmitImpl = useCallback(
+    async (text: string | null) => {
+      if (text === null) {
+        updateMessage(conversationId, messageId!, { state: MessageState.finish })
+        return
+      }
+
+      const newContent: ContentBlock[] = [chat.createContentBlock(text, 'text')]
+      let success = true
+
+      if (user?.isLogin) {
+        success = await apiMessagesUpdate(conversationId, messageId!, { content: newContent })
+      }
+
+      if (success) {
+        updateMessage(conversationId, messageId!, {
+          state: MessageState.finish,
+          content: newContent
+        })
+      }
+    },
+    [conversationId, messageId, updateMessage, user?.isLogin]
+  )
+
+  const handleMarkdownSubmitRef = useRef(handleMarkdownSubmitImpl)
+  handleMarkdownSubmitRef.current = handleMarkdownSubmitImpl
+  const handleMarkdownSubmit = useCallback(
+    (text: string | null) => handleMarkdownSubmitRef.current(text),
+    []
+  )
+
   const messageContentComp = useMemo(() => {
     switch (true) {
       case state === MessageState.loading:
         return <LoadingDots />
-      case state === MessageState.edit:
+      case state === MessageState.edit && role === 'user':
         return (
           <EditorPanelInner
             embed={true}
             contentBlock={editInitContentRef.current}
             submitFn={handleEditorSubmit}
+          />
+        )
+      case state === MessageState.edit:
+        return (
+          <MarkdownEditorPanel
+            initialText={editInitTextRef.current ?? ''}
+            submitFn={handleMarkdownSubmit}
           />
         )
       case state === MessageState.error: {
@@ -140,7 +185,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
       default:
         return <AIMessage content={content} thoughtValue={thoughtValue} annotations={annotations} />
     }
-  }, [state, content, handleEditorSubmit, t, role, thoughtValue, annotations])
+  }, [state, content, handleEditorSubmit, handleMarkdownSubmit, t, role, thoughtValue, annotations])
 
   return (
     <Box

@@ -45,9 +45,21 @@ export const putLocalValue = (key: string, value: any): boolean => {
   }
 }
 
+// 登出时清空本地存储，但保留主题/语言这类跟设备而非账号绑定的偏好设置
+const PRESERVED_KEYS_ON_LOGOUT = [localKey.theme, localKey.language]
+
 export const clearAllLocalStorage = (): void => {
   try {
+    const preserved = PRESERVED_KEYS_ON_LOGOUT.map(
+      (key) => [key, localStorage.getItem(key)] as const
+    )
+
     localStorage.clear()
+
+    preserved.forEach(([key, value]) => {
+      if (value !== null) localStorage.setItem(key, value)
+    })
+
     logger.info('All localStorage data cleared')
   } catch (error) {
     logger.error('Error clearing localStorage:', error)
