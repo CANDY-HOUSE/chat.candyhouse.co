@@ -22,7 +22,8 @@ const MarkdownEditorPanel: React.FC<Props> = ({ initialText, submitFn }) => {
         width: '100%',
         border: '1px solid #ccc',
         borderRadius: '0.5rem',
-        p: 'var(--spacing-sm)'
+        overflow: 'hidden',
+        backgroundColor: 'var(--page-background)'
       }}
     >
       <TextField
@@ -34,9 +35,12 @@ const MarkdownEditorPanel: React.FC<Props> = ({ initialText, submitFn }) => {
         variant="outlined"
         value={text}
         onChange={(e) => setText(e.target.value)}
+        sx={{
+          mb: 0
+        }}
       />
 
-      <Stack direction="row" justifyContent="flex-end" sx={{ mt: 'var(--spacing-sm)' }}>
+      <Stack direction="row" justifyContent="flex-end" sx={{ p: 'var(--spacing-sm)' }}>
         <Button onClick={handleCancel}>{t('common.cancel')}</Button>
         <Button onClick={handleSave}>{t('common.save')}</Button>
       </Stack>

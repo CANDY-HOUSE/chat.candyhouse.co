@@ -47,6 +47,7 @@ const EditorPanelInner: React.FC<Props> = ({ contentBlock, submitFn, embed = fal
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        backgroundColor: 'var(--page-background)',
         ...(embed && {
           border: '1px solid #ccc',
           borderRadius: '0.5rem'
