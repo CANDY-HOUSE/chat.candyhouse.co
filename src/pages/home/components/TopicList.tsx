@@ -415,12 +415,15 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   }
 
   const initPage = async () => {
-    if (!loading) {
-      if (topics.length > 0) {
-        await handleTopicClick(topics[0]!.id, topics[0]!.models)
-        setLoading(false)
-      }
+    if (loading) return
+
+    if (topics.length > 0) {
+      await handleTopicClick(topics[0]!.id, topics[0]!.models)
     }
+
+    // 无论有没有话题都要撤骨架屏：登录用户 0 话题时走的是乐观新建分支，
+    // 这里拿不到 topics，旧写法会把骨架屏永久挂住
+    setLoading(false)
   }
 
   useImperativeHandle(ref, () => ({

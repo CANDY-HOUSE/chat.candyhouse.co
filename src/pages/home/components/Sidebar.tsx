@@ -9,6 +9,7 @@ import { useOptimistic } from '@/hooks/useOptimistic'
 import {
   activeModelSelectAtom,
   activeTopicIdAtom,
+  authStatusAtom,
   BeanTheme,
   changeTheme,
   gateTopicReady,
@@ -46,6 +47,7 @@ const Sidebar = () => {
   const { t } = useTranslation()
   const { isMobile } = useMediaQueryContext()
   const activeModelSelect = useAtomValue(activeModelSelectAtom)
+  const authStatus = useAtomValue(authStatusAtom)
   const themeMode = useAtomValue(mThemeValueAtom)
   const isShowSideBar = useAtomValue(isShowSideBarAtom)
   const sideBarW = useAtomValue(sideBarWidthAtom)
@@ -224,6 +226,9 @@ const Sidebar = () => {
   }
 
   useEffect(() => {
+    // 登录态未定时不做任何 bootstrap：否则会先按访客身份把本地占位话题推上屏，
+    // 等鉴权回来再整体换成真实数据，多闪一次
+    if (authStatus === 'pending') return
     if (!activeModelSelect || activeModelSelect.length < 1) return
 
     if (user?.isLogin) {
@@ -231,7 +236,7 @@ const Sidebar = () => {
     } else {
       handleCreateTopic()
     }
-  }, [user?.isLogin, activeModelSelect])
+  }, [authStatus, user?.isLogin, activeModelSelect])
 
   return (
     <Stack

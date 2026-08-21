@@ -11,6 +11,10 @@ export const store = createStore()
 // 用户相关
 export const userAtom = atom<BeanUser | null>(null)
 
+// 鉴权阶段：'pending' 表示还没问过 Cognito。
+// userAtom 的 null 无法和「确认未登录」区分，bootstrap 逻辑必须依赖这个三态而不是 user?.isLogin
+export const authStatusAtom = atom<'pending' | 'authed' | 'guest'>('pending')
+
 // 加载状态
 export const loadingAtom = atom(false)
 
@@ -42,6 +46,7 @@ export const hideLoading = (): void => {
 export const resetAllAtoms = (): void => {
   // 重置用户状态
   store.set(userAtom, null)
+  store.set(authStatusAtom, 'pending')
 
   // 重置加载状态
   store.set(loadingAtom, false)

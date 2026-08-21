@@ -5,11 +5,13 @@ import { PageLoader } from '@/components/PageLoader'
 import { useMediaQueryContext } from '@/context/MediaQueryContext'
 import {
   anchorAtom,
+  authStatusAtom,
   dialogAtom,
   dismissToast,
   imagePreviewSrcsAtom,
   isShowSideBarAtom,
   resetAllAtoms,
+  store,
   switchAnchor,
   switchDialog,
   toastsAtom,
@@ -17,8 +19,8 @@ import {
 } from '@/store'
 import { apiAuthToken } from '@api'
 import { config } from '@config'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import React, { lazy, Suspense, useEffect } from 'react'
+import { useAtomValue, useSetAtom } from 'jotai'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import ImagePreview from '../features/common/ImagePreview'
 
@@ -33,7 +35,11 @@ const RoutesComponent: React.FC = () => {
   const dialog = useAtomValue(dialogAtom)
   const imagePreviewSrcs = useAtomValue(imagePreviewSrcsAtom)
   const setIsShowSideBar = useSetAtom(isShowSideBarAtom)
-  const [user, setUser] = useAtom(userAtom)
+  const setUser = useSetAtom(userAtom)
+  const setAuthStatus = useSetAtom(authStatusAtom)
+  // HomePage 的重挂钥匙：只有真正换账号才会变。
+  // 用 user.email 当 key 会让「刷新时 null → 已登录」这次必然发生的变化白送一次全量重挂
+  const [sessionKey, setSessionKey] = useState('session')
 
   useEffect(() => {
     setIsShowSideBar(!isMobile)
@@ -45,8 +51,18 @@ const RoutesComponent: React.FC = () => {
         resetAllAtoms()
         break
       case config.paths.home:
-        apiAuthToken().then(async (data) => {
+        apiAuthToken().then((data) => {
+          const prev = store.get(userAtom)
+          // 首次解析时 prev.email 为空，不算换账号；换账号才需要清掉上一个账号的残留并重挂
+          const switched = !!prev?.email && !!data.email && prev.email !== data.email
+
+          if (switched) {
+            resetAllAtoms()
+            setSessionKey(data.email)
+          }
+
           setUser(data)
+          setAuthStatus(data.isLogin ? 'authed' : 'guest')
         })
         break
     }
@@ -57,7 +73,7 @@ const RoutesComponent: React.FC = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path={config.paths.login} element={<LoginPage key="login" />} />
-          <Route path={config.paths.home} element={<HomePage key={user?.email || 'no-user'} />} />
+          <Route path={config.paths.home} element={<HomePage key={sessionKey} />} />
         </Routes>
       </Suspense>
 
