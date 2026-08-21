@@ -296,8 +296,10 @@ export const useAi = () => {
         // 处理响应数据
         await processStreamValue(data, modelRes, toBeSendMessage)
 
-        // 无内容更新时不推送消息
-        if (modelRes.length === 0) return
+        // 无内容更新时不推送消息；推理过程也算更新，否则推理阶段的 thoughtValue 攒在
+        // modelThought 里却一直不推给前端，直到正文开始输出才第一次 push，界面上就会
+        // 表现成"推理过程要等推理完成才显示"
+        if (modelRes.length === 0 && !modelThought) return
 
         handlePushMessage(conversationId, toBeSendMessage, {
           content: [...modelRes],
