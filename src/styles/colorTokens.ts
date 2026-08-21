@@ -48,8 +48,7 @@ export const darkColors: ColorTokens = {
   surfaceRaised: '#22272e',
   surfaceSelected: '#2d333b',
   surfaceTrack: '#30363d',
-  // 比 surfaceSelected/surfaceTrack 更亮一档：细边框在深色 UI 里天生比大面积色块更难被感知，
-  // 沿用 GitHub 真实深色画布（#0d1117）的边框值在这套更亮一档的 dim 画布上会显得几乎消失。
+  // 比 surfaceSelected/surfaceTrack 更亮一档：细边框在深色 UI 里天生比大面积色块更难被感知
   borderDefault: '#444c56',
   divider: '#262c36',
   bgHover: '#2d333b',
