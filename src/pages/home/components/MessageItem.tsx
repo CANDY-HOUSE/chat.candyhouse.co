@@ -59,7 +59,8 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
     if (role === 'user') {
       if (editInitContentRef.current === undefined) editInitContentRef.current = content
     } else {
-      if (editInitTextRef.current === undefined) editInitTextRef.current = chat.blocksToMarkdown(content)
+      if (editInitTextRef.current === undefined)
+        editInitTextRef.current = chat.blocksToMarkdown(content)
     }
   } else {
     editInitContentRef.current = undefined
@@ -80,7 +81,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
     return parts.join(', ')
   }, [createdAt, model, t, tokens, totalTokens, words])
 
-  const isAtWork = useMemo(() => {
+  const isAnsweringCurrentQuestion = useMemo(() => {
     const models = workingModels.find(
       ({ atom }) => store.get(atom).conversationId === conversationId
     )
@@ -185,7 +186,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
       default:
         return <AIMessage content={content} thoughtValue={thoughtValue} annotations={annotations} />
     }
-  }, [state, content, handleEditorSubmit, handleMarkdownSubmit, t, role, thoughtValue, annotations])
+  }, [state, content, handleEditorSubmit, handleMarkdownSubmit, role, thoughtValue, annotations])
 
   return (
     <Box
@@ -242,7 +243,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
             }}
           >
             {/* 渐变背景层 */}
-            {isAtWork && (
+            {isAnsweringCurrentQuestion && (
               <motion.div
                 style={{
                   position: 'absolute',

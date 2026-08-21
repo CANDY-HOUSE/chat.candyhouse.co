@@ -24,7 +24,8 @@ export const useAi = () => {
   const user = useAtomValue(userAtom)
 
   const { toAiRequest } = useMessage()
-  const { pushMessage, getAttrValue, updateModelInfo, updateMessage } = useConversation()
+  const { pushMessage, getAttrValue, updateModelInfo, updateMessage, updateMessageByClientId } =
+    useConversation()
   const { getModelName } = useModel()
 
   /** 检查用户是否主动中止回答
@@ -413,6 +414,17 @@ export const useAi = () => {
           // 刷新模型消息
           toBeSendMessage.clientId = message.clientId
           toBeSendMessage.messageId = message.messageId
+
+          // 沿用旧回答的 answeringClientId，并让它对应的 user 提问重新亮起"工作中"动画
+          if (message.answeringClientId) {
+            toBeSendMessage.answeringClientId = message.answeringClientId
+            updateMessageByClientId(
+              conversationId,
+              message.answeringClientId,
+              { isCurrentQuestion: true },
+              topicId
+            )
+          }
         }
         if (message.role === 'user') {
           // 刷新用户消息
@@ -423,7 +435,7 @@ export const useAi = () => {
 
       handleSendMessage(conversationId, message, toBeSendMessage, topicId)
     },
-    [user?.isLogin, updateMessage, t]
+    [user?.isLogin, updateMessage, updateMessageByClientId, t]
   )
 
   // 重置发送消息次数

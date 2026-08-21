@@ -32,7 +32,7 @@ const withLoading = <T extends (...args: never[]) => Promise<any>>(
   fn: T,
   options: LoadingOptions = {}
 ): T => {
-  const { enableLoading = true } = options
+  const { enableLoading = false } = options
 
   return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
     if (!enableLoading) {
@@ -95,16 +95,13 @@ export const apiAuthToken = withLoading(async (): Promise<BeanUser> => {
   }
 })
 
-export const apiLogout = withLoading(
-  async () => {
-    await signOut()
-    clearAllLocalStorage()
-    gtag('set', {
-      user_id: null
-    })
-  },
-  { enableLoading: false }
-)
+export const apiLogout = withLoading(async () => {
+  await signOut()
+  clearAllLocalStorage()
+  gtag('set', {
+    user_id: null
+  })
+})
 
 export const apiPostRealtimeSession = withLoading(
   async (model: string, options: Record<string, unknown> = {}) => {
@@ -257,8 +254,7 @@ export const apiConversationsUpdate = withLoading(
     } catch {
       return false
     }
-  },
-  { enableLoading: false }
+  }
 )
 
 // 获取会话列表
@@ -317,8 +313,7 @@ export const apiMessagesCreate = withLoading(
     } catch {
       return null
     }
-  },
-  { enableLoading: false }
+  }
 )
 
 // 获取消息
@@ -343,17 +338,20 @@ export const apiMessagesGet = withLoading(
 )
 
 // 删除消息
-export const apiMessagesDelete = withLoading(async (conversationId: string, messageId?: string) => {
-  try {
-    const result = await api.delete(`${config.apiPaths.messages}`, {
-      id: conversationId,
-      ...(messageId && { messageId })
-    })
-    return result.success
-  } catch {
-    return false
-  }
-})
+export const apiMessagesDelete = withLoading(
+  async (conversationId: string, messageId?: string) => {
+    try {
+      const result = await api.delete(`${config.apiPaths.messages}`, {
+        id: conversationId,
+        ...(messageId && { messageId })
+      })
+      return result.success
+    } catch {
+      return false
+    }
+  },
+  { enableLoading: true }
+)
 
 // 修改消息
 export const apiMessagesUpdate = withLoading(
@@ -413,8 +411,7 @@ export const apiStreamChat = withLoading(
 
       await onChunk?.(data)
     }
-  },
-  { enableLoading: false }
+  }
 )
 
 async function* parseSSE(response: Response) {
@@ -523,13 +520,16 @@ export const apiPostConfigGen = async (param: {
   return result.data
 }
 
-export const apiModelPromote = withLoading(async () => {
-  try {
-    const result = await api.post<{ action: string; promoted: number; writes: number }>(
-      `${config.apiPaths.model}/promote?action=putPromote`
-    )
-    return result.data
-  } catch {
-    return null
-  }
-})
+export const apiModelPromote = withLoading(
+  async () => {
+    try {
+      const result = await api.post<{ action: string; promoted: number; writes: number }>(
+        `${config.apiPaths.model}/promote?action=putPromote`
+      )
+      return result.data
+    } catch {
+      return null
+    }
+  },
+  { enableLoading: true }
+)

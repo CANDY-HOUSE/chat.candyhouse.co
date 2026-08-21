@@ -175,6 +175,34 @@ export const useConversation = () => {
     [updateConversations]
   )
 
+  // 按 clientId 修改指定话题的指定会话的指定消息
+  const updateMessageByClientId = useCallback(
+    (
+      conversationId: string,
+      clientId: string,
+      options: Partial<Omit<IMessage, 'messageId' | 'clientId' | 'createdAt'>>,
+      topicId?: string
+    ) => {
+      const id = topicId || store.get(activeTopicIdAtom)
+      if (!id) return false
+
+      updateConversations(
+        (prev) =>
+          prev.map((conv) => {
+            if (conv.conversationId !== conversationId) return conv
+
+            const newMessages = conv.messages.map((msg) =>
+              msg.clientId === clientId ? { ...msg, ...options } : msg
+            )
+
+            return { ...conv, messages: newMessages }
+          }),
+        id
+      )
+    },
+    [updateConversations]
+  )
+
   // 清空指定话题的指定会话消息列表
   const deleteMessage = useCallback(
     async (conversationId: string, messageId?: string, topicId?: string) => {
@@ -503,6 +531,7 @@ export const useConversation = () => {
     updateAttrsValue,
     updateModelInfo,
     updateMessage,
+    updateMessageByClientId,
     deleteMessage,
     deleteConversation,
 

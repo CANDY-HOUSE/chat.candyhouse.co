@@ -19,6 +19,8 @@ import {
   activeTopicIdAtom,
   conversationsAtom,
   focusMessageAtom,
+  hideLoading,
+  showLoading,
   switchAnchor,
   switchToast,
   topicsAtom,
@@ -436,8 +438,10 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   const initPage = async () => {
     if (!loading) {
       if (topics.length > 0) {
+        showLoading()
         await handleTopicClick(topics[0]!.id, topics[0]!.models)
         setLoading(false)
+        hideLoading()
       }
     }
   }
