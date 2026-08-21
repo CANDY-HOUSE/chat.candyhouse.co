@@ -11,6 +11,21 @@ export const topicsAtom = atom<Array<ITopics>>([])
 // 当前激活话题
 export const activeTopicIdAtom = atom<string | null>(null)
 
+// 新建话题的"就绪"闸门
+let topicReadyPromise: Promise<unknown> | null = null
+
+// 注册闸门并在结束后自动解除（只解除自己注册的那次，连续新建时互不干扰）
+export const gateTopicReady = async (settle: Promise<unknown>): Promise<void> => {
+  topicReadyPromise = settle
+  try {
+    await settle
+  } finally {
+    if (topicReadyPromise === settle) topicReadyPromise = null
+  }
+}
+
+export const waitTopicReady = (): Promise<unknown> => topicReadyPromise ?? Promise.resolve()
+
 // 全量会话列表
 export const conversationsFamily = atomFamily((_topicId: string) => atom<IConversation[]>([]))
 

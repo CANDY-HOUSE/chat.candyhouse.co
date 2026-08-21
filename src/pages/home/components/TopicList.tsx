@@ -13,22 +13,19 @@ import { MenuButton, type OptionType } from '@/components/MenuButton'
 import { useMediaQueryContext } from '@/context/MediaQueryContext'
 import { DragList, type ReorderInfo } from '@/features/common/DragList'
 import { useConversation } from '@/hooks/useConversation'
+import { snapshotAtom, useOptimistic } from '@/hooks/useOptimistic'
 import { useTopic } from '@/hooks/useTopic'
 import {
   activeModelSelectAtom,
   activeTopicIdAtom,
   conversationsAtom,
   focusMessageAtom,
-  hideLoading,
-  showLoading,
   switchAnchor,
-  switchToast,
   topicsAtom,
   userAtom
 } from '@/store'
 import type { IConversation, ITopics } from '@/types/messagetypes'
-import { chat, enhanceEventParams, logger, resolveConversationTitle } from '@/utils'
-import { Level } from '@constants'
+import { chat, enhanceEventParams, resolveConversationTitle } from '@/utils'
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -77,6 +74,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   const { resetConversations, getConversations, setConversations, updateAttrsValue } =
     useConversation()
   const { updateAttrsValue: updateTopicAttrsValue } = useTopic()
+  const { runOptimistic } = useOptimistic()
 
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -98,19 +96,20 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
         />
       ),
       async handle(topicId: string) {
-        const originList = [...topics]
-        let list = [...topics]
-        const index = list.findIndex((t) => t.id === topicId)
-        let success = true
+        const index = topics.findIndex((t) => t.id === topicId)
+        const list = topics.toSpliced(index, 1)
+        const rollback = snapshotAtom(topicsAtom)
 
         switchAnchor({ children: null })
-        list = list.toSpliced(index, 1)
-        setTopics(list)
 
-        if (user?.isLogin) {
-          success = await apiTopicsDelete(topicId)
-        }
+        const outcome = runOptimistic({
+          apply: () => setTopics(list),
+          commit: () => apiTopicsDelete(topicId),
+          rollback,
+          failMessage: t('DelFail')
+        })
 
+        // 选中态跟随本地列表立刻切换，不等落库结果
         if (topicId === activeTopicId) {
           if (list.length > 0) {
             handleTopicClick(list[0]!.id, list[0]!.models)
@@ -119,10 +118,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
           }
         }
 
-        if (!success) {
-          setTopics(originList)
-          switchToast({ visible: true, message: t('DelFail'), level: Level.error })
-        }
+        await outcome
       }
     },
     {
@@ -244,10 +240,9 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
 
   // 模型会话勾选
   const handleModelSelect = async (id: string, model: string, anchorTimestamp?: string) => {
-    const t = [...topics]
-    const tIndex = t.findIndex((item) => item.id === id)
+    const tIndex = topics.findIndex((item) => item.id === id)
 
-    const finalModels = [...t[tIndex]!.models]
+    const finalModels = [...topics[tIndex]!.models]
     const mIndex = finalModels.indexOf(model)
     const isCheck = mIndex < 0 // 模型是否勾选
 
@@ -260,20 +255,23 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
       finalModels.splice(mIndex, 1)
     }
 
-    // 更新 topics
-    t[tIndex]!.models = finalModels
-    setTopics(t)
-
-    if (user?.isLogin) {
+    const rollback = snapshotAtom(topicsAtom)
+    const outcome = await runOptimistic({
+      // 更新 topics
+      apply: () => setTopics(topics.with(tIndex, { ...topics[tIndex]!, models: finalModels })),
       // 话题所属模型变更
-      await apiTopicsUpdate({ id, models: finalModels })
-      if (anchorTimestamp) return
+      commit: () => apiTopicsUpdate({ id, models: finalModels }),
+      rollback,
+      failMessage: t('SubmissionFail')
+    })
 
-      // 更新消息列表
-      if (isCheck) {
-        const convs = getConversations(id)
-        convs && (await conversationMessagesInit(model, convs))
-      }
+    // 未登录时不拉消息列表（本地无远端消息），落库失败已回滚也不必拉
+    if (outcome.status !== 'committed' || anchorTimestamp) return
+
+    // 更新消息列表
+    if (isCheck) {
+      const convs = getConversations(id)
+      convs && (await conversationMessagesInit(model, convs))
     }
   }
 
@@ -283,9 +281,8 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
 
     if (editId === topicId) {
       // 提交修改
-      const list = [...topics]
-      const index = list.findIndex((t) => t.id === topicId)
-      const originName = list[index]?.name
+      const index = topics.findIndex((t) => t.id === topicId)
+      const originName = topics[index]?.name
       const name = inputRef.current?.value
 
       setEditId('')
@@ -294,18 +291,16 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
         return
       }
 
-      let success = true
-      list[index]!.name = name
-      setTopics(list)
+      const rollback = snapshotAtom(topicsAtom)
 
-      if (user?.isLogin) {
-        success = await apiTopicsUpdate({ id: topicId, name })
-        getTopicList()
-      }
-
-      if (!success) {
-        switchToast({ visible: true, message: t('SubmissionFail'), level: Level.error })
-      }
+      await runOptimistic({
+        apply: () => setTopics(topics.with(index, { ...topics[index]!, name })),
+        commit: () => apiTopicsUpdate({ id: topicId, name }),
+        // 拉回权威列表（改名会带动 updatedAt/version）
+        reconcile: () => getTopicList(),
+        rollback,
+        failMessage: t('SubmissionFail')
+      })
     } else {
       // 打开操作菜单
       const rect = e.currentTarget.getBoundingClientRect()
@@ -337,27 +332,24 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     const { before, after } = getNeighbors<IConversation>(data, newIndex)
     const { topicId, modelId, version, conversationId } = item
 
-    // 乐观更新
-    setConversations(data)
-
-    if (user?.isLogin) {
-      const res = await apiConversationMove(topicId, {
-        targetModelId: modelId,
-        beforeModelId: before?.modelId,
-        afterModelId: after?.modelId,
-        expectedVersion: version ?? 0
-      })
-
-      if (res) {
-        updateAttrsValue(conversationId, { order: res.order, version: res.version })
-      } else {
-        // 回滚 & 刷新
+    await runOptimistic({
+      apply: () => setConversations(data),
+      commit: () =>
+        apiConversationMove(topicId, {
+          targetModelId: modelId,
+          beforeModelId: before?.modelId,
+          afterModelId: after?.modelId,
+          expectedVersion: version ?? 0
+        }),
+      reconcile: (res) => updateAttrsValue(conversationId, { order: res.order, version: res.version }),
+      // 排序冲突多半是并发导致的，回滚后再拉一次权威顺序
+      rollback: async () => {
         setConversations(items)
         const latest = await apiConversationsGet(topicId)
         setConversations(latest)
         conversationMessagesInit(models, latest)
       }
-    }
+    })
   }
 
   // 话题排序
@@ -367,26 +359,22 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   ) => {
     const { before, after } = getNeighbors<ITopics>(data, newIndex)
 
-    // 乐观更新
-    setTopics(data)
-
-    if (user?.isLogin) {
-      const res = await apiTopicMove({
-        targetTopicId: item.id,
-        beforeTopicId: before?.id,
-        afterTopicId: after?.id,
-        expectedVersion: item.version ?? 0
-      })
-
-      if (res) {
-        updateTopicAttrsValue(item.id, { order: res.order, version: res.version })
-      } else {
-        // 回滚 & 刷新
+    await runOptimistic({
+      apply: () => setTopics(data),
+      commit: () =>
+        apiTopicMove({
+          targetTopicId: item.id,
+          beforeTopicId: before?.id,
+          afterTopicId: after?.id,
+          expectedVersion: item.version ?? 0
+        }),
+      reconcile: (res) => updateTopicAttrsValue(item.id, { order: res.order, version: res.version }),
+      // 排序冲突多半是并发导致的，回滚后再拉一次权威顺序
+      rollback: async () => {
         setTopics(items)
-        const latest = await apiTopicsGet()
-        setTopics(latest)
+        setTopics(await apiTopicsGet())
       }
-    }
+    })
   }
 
   // 新增会话
@@ -397,32 +385,23 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     const model = activeModelSelect.find((m) => m.modelName === data.value)!
     convTmpData.modelInfo = model
     const originConvs = [...conversations]
-    let convs = [convTmpData, ...originConvs]
-    let success = true
-    setConversations(convs)
+    // 占位会话先上屏，落库成功后换成带真实 conversationId 的那条
+    let newModelId = convTmpData.modelId
 
-    try {
-      if (user?.isLogin) {
-        success = await apiConversationsCreate({
-          topicId,
-          modelName: data.value
-        })
+    const outcome = await runOptimistic({
+      apply: () => setConversations([convTmpData, ...originConvs]),
+      commit: () => apiConversationsCreate({ topicId, modelName: data.value }),
+      reconcile: async () => {
+        const convs = await apiConversationsGet(topicId)
+        newModelId = convs[0]!.modelId
+        setConversations([convs[0]!, ...originConvs])
+      },
+      rollback: () => setConversations(originConvs),
+      failMessage: t('createFail')
+    })
 
-        if (success) {
-          convs = await apiConversationsGet(topicId)
-          setConversations([convs[0]!, ...originConvs])
-        }
-      }
-
-      handleModelSelect(topicId, convs[0]!.modelId)
-
-      if (!success) {
-        setConversations(originConvs)
-        switchToast({ visible: true, message: t('createFail'), level: Level.error })
-      }
-    } catch (error) {
-      logger.error('Failed to create conversation:', error)
-      switchToast({ visible: true, message: t('createFail'), level: Level.error })
+    if (outcome.status !== 'failed') {
+      handleModelSelect(topicId, newModelId)
     }
 
     gtag(
@@ -438,10 +417,8 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   const initPage = async () => {
     if (!loading) {
       if (topics.length > 0) {
-        showLoading()
         await handleTopicClick(topics[0]!.id, topics[0]!.models)
         setLoading(false)
-        hideLoading()
       }
     }
   }

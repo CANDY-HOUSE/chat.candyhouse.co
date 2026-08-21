@@ -4,15 +4,16 @@ import {
   apiMessagesDelete,
   apiMessagesUpdate
 } from '@/api'
-import { activeTopicIdAtom, conversationsFamily, store, switchToast, userAtom } from '@/store'
+import { activeTopicIdAtom, conversationsFamily, store, userAtom } from '@/store'
 import type { IConversation, IMessage } from '@/types/messagetypes'
 import { getLocalValue, localKey, logger } from '@/utils'
 import { cacheControlStrategy } from '@/utils/cacheControlStrategy'
-import { Level, MessageState, SendType } from '@constants'
+import { MessageState, SendType } from '@constants'
 import { useAtomValue } from 'jotai'
 import { useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { useOptimistic } from './useOptimistic'
 
 // 会话内是否仍有消息处于生成中或落库中
 export const isConversationBusy = (messages: IMessage[]): boolean =>
@@ -24,6 +25,7 @@ export const isConversationBusy = (messages: IMessage[]): boolean =>
 export const useConversation = () => {
   const { t } = useTranslation()
   const user = useAtomValue(userAtom)
+  const { runOptimistic } = useOptimistic()
 
   // 获取指定话题的会话
   const getConversations = useCallback((topicId?: string) => {
@@ -78,35 +80,26 @@ export const useConversation = () => {
       const convs = getConversations(id)
       if (!convs) return false
 
-      try {
-        const index = convs.findIndex((conv) => conv.conversationId === conversationId)
-        if (index === -1) {
-          logger.warn(`Conversation ${conversationId} not found`)
-          return false
-        }
-        const conv = convs[index]!
-        let success = true
-
-        setConversations(convs.toSpliced(index, 1))
-
-        // 更新到数据库
-        if (user?.isLogin) {
-          success = await apiConversationsDelete({
-            topicId: conv.topicId,
-            modelId: conv.modelId
-          })
-        }
-
-        if (!success) {
-          setConversations(convs)
-          switchToast({ visible: true, message: t('DelFail'), level: Level.error })
-        }
-      } catch (error) {
-        logger.error('Failed to clear conversation:', error)
-        switchToast({ visible: true, message: t('DelFail'), level: Level.error })
+      const index = convs.findIndex((conv) => conv.conversationId === conversationId)
+      if (index === -1) {
+        logger.warn(`Conversation ${conversationId} not found`)
+        return false
       }
+      const conv = convs[index]!
+
+      await runOptimistic({
+        apply: () => setConversations(convs.toSpliced(index, 1), id),
+        commit: () => apiConversationsDelete({ topicId: conv.topicId, modelId: conv.modelId }),
+        // 把被删的那条插回「当前」列表，而不是整体还原快照——否则同话题下其他会话这期间的流式更新会被一起回退掉
+        rollback: () => {
+          const latest = store.get(conversationsFamily(id))
+          if (latest.some((item) => item.conversationId === conversationId)) return
+          setConversations(latest.toSpliced(index, 0, conv), id)
+        },
+        failMessage: t('DelFail')
+      })
     },
-    [getConversations, setConversations, t, user?.isLogin]
+    [getConversations, setConversations, t, runOptimistic]
   )
 
   // 获取指定话题的指定会话的指定属性
@@ -207,44 +200,45 @@ export const useConversation = () => {
   const deleteMessage = useCallback(
     async (conversationId: string, messageId?: string, topicId?: string) => {
       const id = (topicId || store.get(activeTopicIdAtom))!
+      const conv = getConversation(conversationId, id)
 
-      try {
-        const conv = getConversation(conversationId, id)
-
-        if (!conv) {
-          logger.warn(`Conversation ${conversationId} not found`)
-          return
-        }
-        if (messageId === '') throw new Error(`The parameter messageId can not be empty`)
-
-        const { messages } = conv
-        const deleteAll = messageId === undefined
-        let success = true
-
-        // 更新到数据库
-        if (user?.isLogin) {
-          success = await apiMessagesDelete(conversationId, messageId)
-        }
-
-        if (success) {
-          if (deleteAll) {
-            updateAttrsValue(conversationId, { messages: [] }, id)
-          } else {
-            const delIdx = messages.findIndex((msg) => msg.messageId === messageId)
-
-            if (delIdx > -1) {
-              updateAttrsValue(conversationId, { messages: messages.toSpliced(delIdx, 1) }, id)
-            }
-          }
-        } else {
-          switchToast({ visible: true, message: t('DelFail'), level: Level.error })
-        }
-      } catch (error) {
-        logger.error('Failed to clear messages:', error)
-        switchToast({ visible: true, message: t('DelFail'), level: Level.error })
+      if (!conv) {
+        logger.warn(`Conversation ${conversationId} not found`)
+        return
       }
+      if (messageId === '') {
+        logger.error('Failed to clear messages: the parameter messageId can not be empty')
+        return
+      }
+
+      const { messages } = conv
+      const deleteAll = messageId === undefined
+      const delIdx = deleteAll ? -1 : messages.findIndex((msg) => msg.messageId === messageId)
+      if (!deleteAll && delIdx === -1) return
+
+      const nextMessages = deleteAll ? [] : messages.toSpliced(delIdx, 1)
+
+      await runOptimistic({
+        apply: () => updateAttrsValue(conversationId, { messages: nextMessages }, id),
+        commit: () => apiMessagesDelete(conversationId, messageId),
+        // 单条删除时把消息插回「当前」列表，避免回退掉这期间本会话的流式更新；清空全部则只能整体还原
+        rollback: () => {
+          if (deleteAll) {
+            updateAttrsValue(conversationId, { messages }, id)
+            return
+          }
+
+          const latest = getConversation(conversationId, id)?.messages ?? []
+          updateAttrsValue(
+            conversationId,
+            { messages: latest.toSpliced(delIdx, 0, messages[delIdx]!) },
+            id
+          )
+        },
+        failMessage: t('DelFail')
+      })
     },
-    [getConversation, user?.isLogin, t, updateAttrsValue]
+    [getConversation, t, updateAttrsValue, runOptimistic]
   )
 
   // 修改指定话题的指定会话的 modelInfo

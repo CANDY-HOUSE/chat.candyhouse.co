@@ -5,15 +5,18 @@ import SettingDialog from '@/features/dialog/SettingDialog'
 import { useCommandK } from '@/hooks/useCommandK'
 import { useConversation } from '@/hooks/useConversation'
 import { useModel } from '@/hooks/useModel'
+import { useOptimistic } from '@/hooks/useOptimistic'
 import {
   activeModelSelectAtom,
   activeTopicIdAtom,
   BeanTheme,
   changeTheme,
+  gateTopicReady,
   isShowSideBarAtom,
   mThemeValueAtom,
   previewModelSelectAtom,
   sideBarWidthAtom,
+  store,
   switchDialog,
   switchToast,
   topicsAtom,
@@ -21,7 +24,7 @@ import {
   userAtom,
   versionInfo
 } from '@/store'
-import { chat, localKey, putLocalValue } from '@/utils'
+import { chat, localKey, putLocalValue, utils } from '@/utils'
 import { apiConversationsGet, apiTopicsCreate, apiTopicsGet } from '@api'
 import { icons } from '@assets/icons'
 import { Level, ModelCategory } from '@constants'
@@ -51,7 +54,8 @@ const Sidebar = () => {
   const previewModelSelect = useAtomValue(previewModelSelectAtom)
   const [topics, setTopics] = useAtom(topicsAtom)
   const setActiveTopicId = useSetAtom(activeTopicIdAtom)
-  const { setConversations } = useConversation()
+  const { setConversations, resetConversations } = useConversation()
+  const { runOptimistic } = useOptimistic()
   const { promoteModel } = useModel()
   const [loading, setLoading] = useState(true)
   const [promoteLoading, setPromoteLoading] = useState(false)
@@ -133,48 +137,71 @@ const Sidebar = () => {
     }
   }
 
+  // 构建本地占位会话（未登录、以及登录用户乐观渲染共用）
+  const buildTmpConversations = (topicId: string, category: ModelCategory | 'all') => {
+    const models: string[] = []
+    const convs = activeModelSelect
+      .filter((model) => category === 'all' || model.category === category)
+      .map((model) => {
+        const conv = chat.createTplConv(topicId, model.modelName)
+        if (model.isDefault) models.push(conv.modelId)
+        conv.modelInfo = model
+
+        return conv
+      })
+
+    return { convs, models }
+  }
+
   // 创建话题
   const handleCreateTopic = async (category: ModelCategory | 'all' = 'all') => {
     if (newChatDisabled) return
     const topicName = category === 'all' ? t('topicCaption') : t(`modelCategory.${category}`)
-    let success = true
 
-    if (user?.isLogin) {
-      success = await apiTopicsCreate(topicName, category)
-      const list = await apiTopicsGet()
-      const topicId = list[0]!.id
-      const convs = await apiConversationsGet(topicId)
+    if (!user?.isLogin) {
+      const topicTmpId = 'tmp-tid'
+      const { convs, models } = buildTmpConversations(topicTmpId, category)
 
-      setActiveTopicId(topicId)
-      setTopics(list)
-      setConversations(convs)
-    } else {
-      const topicTmpId = 'test-tid'
-      const topicTmpData = {
-        id: topicTmpId,
-        name: topicName,
-        models: [] as string[]
-      }
-      const convsTmpData = activeModelSelect
-        .filter((model) => category === 'all' || model.category === category)
-        .map((model) => {
-          const conv = chat.createTplConv(topicTmpId, model.modelName)
-          model.isDefault && topicTmpData.models.push(conv.modelId)
-          conv.modelInfo = model
-
-          return conv
-        })
-
+      setConversations(convs, topicTmpId)
+      setTopics((prev) => [{ id: topicTmpId, name: topicName, models }, ...prev])
       setActiveTopicId(topicTmpId)
-      setTopics([topicTmpData, ...topics])
-      setConversations(convsTmpData)
+      setLoading(false)
+      return
     }
 
-    if (!success) {
-      switchToast({ visible: true, message: t('createFail'), level: Level.error })
-    }
+    // 乐观渲染：本地占位话题/会话先即时上屏，后端落库完成后再换成真实数据
+    const prevActiveTopicId = store.get(activeTopicIdAtom)
+    const tmpId = `tmp-${utils.getUUID()}`
+    const { convs: tmpConvs, models } = buildTmpConversations(tmpId, category)
 
-    setLoading(false)
+    await gateTopicReady(
+      runOptimistic({
+        apply: () => {
+          setConversations(tmpConvs, tmpId)
+          setTopics((prev) => [{ id: tmpId, name: topicName, models }, ...prev])
+          setActiveTopicId(tmpId)
+          setLoading(false)
+        },
+        commit: () => apiTopicsCreate(topicName, category),
+        reconcile: async (created) => {
+          // 话题要后端生成的 order/version，会话要真实 conversationId，互不依赖可并行
+          const [list, convs] = await Promise.all([apiTopicsGet(), apiConversationsGet(created.id)])
+
+          setConversations(convs, created.id)
+          setTopics(list)
+          // 仅当用户还停在这个新话题上才切过去，避免抢走这期间手动选中的话题
+          if (store.get(activeTopicIdAtom) === tmpId) setActiveTopicId(created.id)
+          resetConversations(tmpId)
+        },
+        // 摘掉占位话题并退回创建前选中的话题
+        rollback: () => {
+          setTopics((prev) => prev.filter((topic) => topic.id !== tmpId))
+          resetConversations(tmpId)
+          if (store.get(activeTopicIdAtom) === tmpId) setActiveTopicId(prevActiveTopicId)
+        },
+        failMessage: t('createFail')
+      })
+    )
   }
 
   // 切换深色/浅色模式

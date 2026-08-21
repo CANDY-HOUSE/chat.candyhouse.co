@@ -10,6 +10,7 @@ import {
   store,
   switchToast,
   UI_CONSTANTS,
+  waitTopicReady,
   workingModelsAtom
 } from '@/store'
 import { type ContentBlock, type IMessage } from '@/types/messagetypes'
@@ -27,7 +28,6 @@ const EditorPanel = () => {
   const workingModels = useAtomValue(workingModelsAtom)
   const editorH = useAtomValue(editorHeightAtom)
   const editorExpanded = useAtomValue(editorExpandedAtom)
-  const conversations = useAtomValue(checkedConversationsAtom)
   const { getAttrValue, applyCacheControlWithAccurateTokens } = useConversation()
   const { uploadFiles } = useMessage()
   const { sendMessage } = useAi()
@@ -62,20 +62,24 @@ const EditorPanel = () => {
         return
       }
 
-      const convAtom = conversations.find((conv) => conv.id === cId)!
+      const convAtom = store.get(checkedConversationsAtom).find((conv) => conv.id === cId)!
       const conv = store.get(convAtom.atom)
       const tId = conv.topicId
       sendMessageRef.current(cId, message, { topicId: tId })
     },
-    [workingModels, conversations]
+    [workingModels]
   )
 
   const handleSubmit = useCallback(
     async (blocks?: ContentBlock[] | null) => {
       if (!blocks || blocks.length < 1) return
 
+      // 新建话题走乐观渲染，此刻的会话可能还是本地占位（临时 conversationId）。
+      // 等真实会话落库就位后再读，否则消息会挂到临时 id 上、随占位会话一起丢失
+      await waitTopicReady()
+
       // 排除 realtime
-      const convs = conversations.filter(({ atom }) => {
+      const convs = store.get(checkedConversationsAtom).filter(({ atom }) => {
         const conv = store.get(atom)
         return !conv.modelInfo.modelName.includes('realtime')
       })
@@ -175,7 +179,6 @@ const EditorPanel = () => {
       )
     },
     [
-      conversations,
       t,
       getAttrValue,
       getModelName,

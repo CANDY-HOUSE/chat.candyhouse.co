@@ -148,13 +148,16 @@ export const apiGetModelSelect = withLoading(
 export const apiTopicsCreate = withLoading(
   async (name: string, category: ModelCategory | 'all' = 'all') => {
     try {
-      const result = await api.post(`${config.apiPaths.topics}`, {
-        name,
-        category
-      })
-      return result.success
+      const result = await api.post<{ id: string; name: string; createdAt: string }>(
+        `${config.apiPaths.topics}`,
+        {
+          name,
+          category
+        }
+      )
+      return result.success ? result.data : null
     } catch {
-      return false
+      return null
     }
   }
 )
@@ -334,24 +337,22 @@ export const apiMessagesGet = withLoading(
     } catch {
       return null
     }
-  }
-)
-
-// 删除消息
-export const apiMessagesDelete = withLoading(
-  async (conversationId: string, messageId?: string) => {
-    try {
-      const result = await api.delete(`${config.apiPaths.messages}`, {
-        id: conversationId,
-        ...(messageId && { messageId })
-      })
-      return result.success
-    } catch {
-      return false
-    }
   },
   { enableLoading: true }
 )
+
+// 删除消息
+export const apiMessagesDelete = withLoading(async (conversationId: string, messageId?: string) => {
+  try {
+    const result = await api.delete(`${config.apiPaths.messages}`, {
+      id: conversationId,
+      ...(messageId && { messageId })
+    })
+    return result.success
+  } catch {
+    return false
+  }
+})
 
 // 修改消息
 export const apiMessagesUpdate = withLoading(
