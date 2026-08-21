@@ -22,7 +22,7 @@ import type { PrimitiveAtom } from 'jotai'
 import { useAtom, useAtomValue } from 'jotai'
 import { debounce } from 'lodash-es'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide, type SwiperRef } from 'swiper/react'
 import { Swiper as SwiperType } from 'swiper/types'
@@ -59,6 +59,8 @@ const HomeRightPanel = () => {
   const [activeIndex, setActiveIndex] = useState(0)
   const [allowSlideNext, setAllowSlideNext] = useState(true)
   const [swiperSlideW, setSwiperSlideW] = useState(window.innerWidth)
+  // 首帧不播布局/入场动画，避免刷新时宽度落位被动画成"滑行"
+  const [layoutReady, setLayoutReady] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const swiperRef = useRef<SwiperRef>(null)
@@ -87,6 +89,18 @@ const HomeRightPanel = () => {
       ),
     []
   )
+
+  // widths 尚未下发时的同步兜底宽度：面板宽度绝不由内容撑开
+  const fallbackWidth = useMemo(() => {
+    const cLength = conversations.length
+    if (cLength === 0) return UI_CONSTANTS.chatMinWidth
+
+    const totalWidth = containerRef.current?.offsetWidth ?? window.innerWidth
+    return Math.max(
+      UI_CONSTANTS.chatMinWidth,
+      Math.trunc((totalWidth - UI_CONSTANTS.resizeLineWidth * cLength) / cLength)
+    )
+  }, [conversations.length])
 
   // 均分各消息列表宽度
   const averageListWidth = useCallback(() => {
@@ -153,7 +167,12 @@ const HomeRightPanel = () => {
     return () => clearTimeout(timeoutId)
   }, [isShowSideBar])
 
-  // 消息列表宽度均分时机
+  // 结构性变化（会话数量、切换话题）：绘制前同步量好宽度，首帧即为终态
+  useLayoutEffect(() => {
+    averageListWidth()
+  }, [conversations.length, activeTopicId, averageListWidth])
+
+  // 侧边栏有 225ms 宽度过渡，只有这类变化需要等过渡结束再量
   useEffect(() => {
     const debouncedUpdate = debounce(() => {
       averageListWidth()
@@ -164,7 +183,7 @@ const HomeRightPanel = () => {
     return () => {
       debouncedUpdate.cancel()
     }
-  }, [sideBarWidth, isShowSideBar, conversations.length, activeTopicId, averageListWidth])
+  }, [sideBarWidth, isShowSideBar, averageListWidth])
 
   // 当 averageListWidth 变化时，重新绑定 window resize
   useEffect(() => {
@@ -185,6 +204,13 @@ const HomeRightPanel = () => {
       setTimeout(() => setSwiperSlideW(window.innerWidth))
     }
   }, [isMobile])
+
+  // 首帧绘制完成后再开启动画
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => setLayoutReady(true))
+
+    return () => cancelAnimationFrame(rafId)
+  }, [])
 
   return (
     <Box ref={containerRef} sx={customStyle.container}>
@@ -260,14 +286,14 @@ const HomeRightPanel = () => {
             }}
           >
             <LayoutGroup>
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence mode="popLayout" initial={false}>
                 {conversations.map(({ id, atom }, index) => {
                   return (
                     <motion.div
                       className="conversation-item-wrapper"
                       data-id={id}
                       key={id}
-                      layout="position"
+                      layout={layoutReady ? 'position' : false}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
@@ -281,7 +307,7 @@ const HomeRightPanel = () => {
                       <Box
                         sx={{
                           position: 'relative',
-                          width: widths[index]?.width,
+                          width: widths.find((w) => w.id === id)?.width ?? fallbackWidth,
                           overflow: 'hidden',
                           height: '100%',
                           flex: 'none',
@@ -305,21 +331,23 @@ const HomeRightPanel = () => {
             </LayoutGroup>
 
             {/* 右侧预留给外部悬浮 UI 的留白；顶部叠一层和 MessageHeader 同色的吸顶条，
-                避免头部背景在这段留白处断开出现接缝 */}
-            <Box sx={{ flex: 'none', width: '184px', position: 'relative' }}>
-              <Box
-                sx={{
-                  position: 'absolute',
-                  zIndex: 999,
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: UI_CONSTANTS.messageHeaderHeight,
-                  background: 'var(--header-overlay-bg)',
-                  backdropFilter: 'blur(8px)'
-                }}
-              />
-            </Box>
+                避免头部背景在这段留白处断开出现接缝。空态不渲染，否则刷新时会先出现一条孤立吸顶条 */}
+            {conversations.length > 0 && (
+              <Box sx={{ flex: 'none', width: '184px', position: 'relative' }}>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    zIndex: 999,
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: UI_CONSTANTS.messageHeaderHeight,
+                    background: 'var(--header-overlay-bg)',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                />
+              </Box>
+            )}
           </Box>
         )}
 

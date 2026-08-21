@@ -247,15 +247,20 @@ export const useConversation = () => {
       const id = topicId || store.get(activeTopicIdAtom)
       if (!id) return false
 
-      updateConversations(
-        (prev) =>
-          prev.map((conv) =>
-            conv.conversationId === conversationId
-              ? { ...conv, modelInfo: { ...conv.modelInfo, ...options } }
-              : conv
-          ),
-        id
-      )
+      updateConversations((prev) => {
+        const index = prev.findIndex((conv) => conv.conversationId === conversationId)
+        if (index === -1) return prev
+
+        const conv = prev[index]!
+        // 同值不写：挂载期 disable 这类字段会被反复赋成同一个值，
+        // 每次都新建 modelInfo 对象会让整条会话白白重渲染一轮
+        const changed = (Object.keys(options) as Array<keyof typeof options>).some(
+          (key) => conv.modelInfo[key] !== options[key]
+        )
+        if (!changed) return prev
+
+        return prev.with(index, { ...conv, modelInfo: { ...conv.modelInfo, ...options } })
+      }, id)
     },
     [updateConversations]
   )
