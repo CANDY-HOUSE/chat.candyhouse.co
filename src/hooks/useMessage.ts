@@ -20,7 +20,6 @@ export const useMessage = () => {
       const conv = getConversation(conversationId, topicId)!
       const { messages } = conv
       let chatMsgs: UnifiedInput[] = [] // 转换后的消息列表
-      let basedId = clientId // 基于哪条用户消息的回答
 
       // user 消息 clientId -> 它在 chatMsgs 中的下标，用于按 answeringClientId 精确回溯
       // 对应的提问，而不是"数组里最近的一条 user 消息"（相邻多条 user 消息时后者会找错）
@@ -100,14 +99,14 @@ export const useMessage = () => {
                   ? preciseIndex
                   : chatMsgs.findLastIndex((m) => m.role === 'user')
               chatMsgs = chatMsgs.slice(0, targetIndex + 1)
-              basedId = messages[targetIndex]!.clientId
+              clientId = messages[targetIndex]!.clientId
             }
           }
           break
         }
       }
 
-      return [chatMsgs, basedId]
+      return [chatMsgs, clientId]
     },
     [getConversation]
   )
