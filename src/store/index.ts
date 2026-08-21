@@ -15,6 +15,10 @@ export const userAtom = atom<BeanUser | null>(null)
 // userAtom 的 null 无法和「确认未登录」区分，bootstrap 逻辑必须依赖这个三态而不是 user?.isLogin
 export const authStatusAtom = atom<'pending' | 'authed' | 'guest'>('pending')
 
+// 首屏数据（话题 → 会话 → 消息）是否已就绪。
+// 侧边栏和主内容区共用这一个骨架屏开关，避免两边各自维护 loading 而错位
+export const bootstrappedAtom = atom(false)
+
 // 加载状态
 export const loadingAtom = atom(false)
 
@@ -49,6 +53,7 @@ export const resetAllAtoms = (): void => {
   store.set(authStatusAtom, 'pending')
 
   // 重置加载状态
+  store.set(bootstrappedAtom, false)
   store.set(loadingAtom, false)
 
   // 重置 model 状态

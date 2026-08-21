@@ -9,6 +9,7 @@ import { useConversation } from '@/hooks/useConversation'
 import {
   UI_CONSTANTS,
   activeTopicIdAtom,
+  bootstrappedAtom,
   checkedConversationsAtom,
   isShowSideBarAtom,
   loadingAtom,
@@ -27,6 +28,7 @@ import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide, type SwiperRef } from 'swiper/react'
 import { Swiper as SwiperType } from 'swiper/types'
 import MessageList from './MessageList'
+import MessageListSkeleton from './MessageListSkeleton'
 
 import 'swiper/css'
 import 'swiper/css/pagination'
@@ -46,7 +48,7 @@ const customStyle = {
   }
 }
 
-const HomeRightPanel = () => {
+const MainContent = () => {
   const { isMobile } = useMediaQueryContext()
   const { widths, setWidths, expandedIndex } = useMessageListContext()
   const { updateModelInfo } = useConversation()
@@ -56,6 +58,7 @@ const HomeRightPanel = () => {
   const [isShowSideBar, setIsShowSideBar] = useAtom(isShowSideBarAtom)
   const viewType = useAtomValue(viewTypeAtom)
   const conversations = useAtomValue(checkedConversationsAtom)
+  const bootstrapped = useAtomValue(bootstrappedAtom)
   const [activeIndex, setActiveIndex] = useState(0)
   const [allowSlideNext, setAllowSlideNext] = useState(true)
   const [swiperSlideW, setSwiperSlideW] = useState(window.innerWidth)
@@ -101,6 +104,20 @@ const HomeRightPanel = () => {
       Math.trunc((totalWidth - UI_CONSTANTS.resizeLineWidth * cLength) / cLength)
     )
   }, [conversations.length])
+
+  // 骨架屏列宽：会话已到就照最终版面画，没到就按可视宽度粗估列数
+  const skeletonWidths = useMemo(() => {
+    if (isMobile) return [swiperSlideW]
+
+    if (conversations.length > 0) {
+      return conversations.map(({ id }) => widths.find((w) => w.id === id)?.width ?? fallbackWidth)
+    }
+
+    const available = window.innerWidth - (isShowSideBar ? sideBarWidth : 0)
+    const count = Math.max(1, Math.min(4, Math.floor(available / UI_CONSTANTS.chatMinWidth)))
+
+    return Array.from({ length: count }, () => Math.trunc(available / count))
+  }, [conversations, widths, fallbackWidth, isMobile, swiperSlideW, isShowSideBar, sideBarWidth])
 
   // 均分各消息列表宽度
   const averageListWidth = useCallback(() => {
@@ -221,7 +238,9 @@ const HomeRightPanel = () => {
         }}
       >
         {/* 消息展示区域 */}
-        {isMobile ? (
+        {!bootstrapped ? (
+          <MessageListSkeleton columnWidths={skeletonWidths} />
+        ) : isMobile ? (
           <Swiper
             ref={swiperRef}
             nested
@@ -361,4 +380,4 @@ const HomeRightPanel = () => {
   )
 }
 
-export default React.memo(HomeRightPanel)
+export default React.memo(MainContent)

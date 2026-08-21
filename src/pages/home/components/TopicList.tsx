@@ -18,6 +18,7 @@ import { useTopic } from '@/hooks/useTopic'
 import {
   activeModelSelectAtom,
   activeTopicIdAtom,
+  bootstrappedAtom,
   conversationsAtom,
   focusMessageAtom,
   switchAnchor,
@@ -69,7 +70,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   const [activeTopicId, setActiveTopicId] = useAtom(activeTopicIdAtom)
   const [focusMessage, setFocusMessage] = useAtom(focusMessageAtom)
   const [editId, setEditId] = useState<string>() // 当前编辑的话题
-  const [loadingState, setLoading] = useState(true)
+  const [bootstrapped, setBootstrapped] = useAtom(bootstrappedAtom)
 
   const { resetConversations, getConversations, setConversations, updateAttrsValue } =
     useConversation()
@@ -341,7 +342,8 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
           afterModelId: after?.modelId,
           expectedVersion: version ?? 0
         }),
-      reconcile: (res) => updateAttrsValue(conversationId, { order: res.order, version: res.version }),
+      reconcile: (res) =>
+        updateAttrsValue(conversationId, { order: res.order, version: res.version }),
       // 排序冲突多半是并发导致的，回滚后再拉一次权威顺序
       rollback: async () => {
         setConversations(items)
@@ -368,7 +370,8 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
           afterTopicId: after?.id,
           expectedVersion: item.version ?? 0
         }),
-      reconcile: (res) => updateTopicAttrsValue(item.id, { order: res.order, version: res.version }),
+      reconcile: (res) =>
+        updateTopicAttrsValue(item.id, { order: res.order, version: res.version }),
       // 排序冲突多半是并发导致的，回滚后再拉一次权威顺序
       rollback: async () => {
         setTopics(items)
@@ -421,9 +424,8 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
       await handleTopicClick(topics[0]!.id, topics[0]!.models)
     }
 
-    // 无论有没有话题都要撤骨架屏：登录用户 0 话题时走的是乐观新建分支，
-    // 这里拿不到 topics，旧写法会把骨架屏永久挂住
-    setLoading(false)
+    // 无论有没有话题都要撤骨架屏：登录用户 0 话题时走的是乐观新建分支
+    setBootstrapped(true)
   }
 
   useImperativeHandle(ref, () => ({
@@ -446,7 +448,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
       aria-labelledby="nested-list-subheader"
       disablePadding
     >
-      {loadingState ? (
+      {!bootstrapped ? (
         <Stack
           direction="column"
           spacing={2}
