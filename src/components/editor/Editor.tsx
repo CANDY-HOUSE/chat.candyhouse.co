@@ -459,7 +459,6 @@ const Editor = forwardRef<EditorHandle, Props>(
         // 初始化 quill
         const quill = new Quill(editorContainerRef.current, {
           theme: 'snow',
-          placeholder: 'Please enter',
           modules: {
             toolbar: {
               container: toolbarContainerRef.current,

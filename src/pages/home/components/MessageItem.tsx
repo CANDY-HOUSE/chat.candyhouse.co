@@ -229,7 +229,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
         spacing={2}
         sx={{ pl: 'var(--spacing-sm)', pr: 'var(--spacing-md)', overflow: 'hidden' }}
       >
-        <Box sx={{ flex: 'none' }}>
+        <Box sx={{ flex: 'none', zIndex: 2 }}>
           <AiAvatarIcon role={role} model={model} />
         </Box>
 

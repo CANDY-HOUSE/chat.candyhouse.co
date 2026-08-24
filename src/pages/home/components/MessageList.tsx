@@ -45,9 +45,9 @@ const customStyle = {
   },
   fastScrollBox: {
     position: 'absolute',
-    right: '-.2rem',
+    left: '1.2rem',
     bottom: '1rem',
-    zIndex: 1000
+    zIndex: 1
   }
 }
 

@@ -76,7 +76,6 @@ export interface ContentBlock {
   fileName?: string
   url?: string
   deltaOp?: Op
-  temporary?: boolean // 是否为临时占位消息
   thoughtSignature?: string // content 对应的 part 真签名。仅 Gemini 3 text/reasoning block 会出现；
 }
 
