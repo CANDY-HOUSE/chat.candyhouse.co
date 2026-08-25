@@ -98,6 +98,12 @@
   }
 
   .ql-editor {
+    // quill.snow.css 把占位符写死成 rgba(0,0,0,.6) 且 font-style:italic
+    &.ql-blank::before {
+      color: var(--text-secondary);
+      font-style: normal;
+    }
+
     &.ql-blank:focus::before {
       content: none !important;
     }

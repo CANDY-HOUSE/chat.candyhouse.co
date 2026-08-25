@@ -219,5 +219,34 @@ export const globalStyles = {
   '.MuiMenuItem-root, .MuiSelect-select, .MuiPopover-paper .MuiTypography-root': {
     fontSize: 'var(--inherited-font-size, var(--text-base))',
     fontFamily: 'inherit'
+  },
+
+  /* 自定义属性默认是无类型的字符串，浏览器不知道怎么在两个值之间插值，
+     动画只会在 0deg / 360deg 之间硬跳。注册成 <angle> 之后才能连续过渡 */
+  '@property --gradient-ai-angle': {
+    syntax: "'<angle>'",
+    inherits: 'false',
+    initialValue: '0deg'
+  },
+
+  '@keyframes gradient-ai-spin': {
+    to: { '--gradient-ai-angle': '360deg' }
+  },
+
+  /* 渐变必须写在这条类规则里、直接落到用它的元素上，不能收成 :root 上的一个
+     自定义属性——自定义属性的值是在「声明它的元素」上做 var() 代换后才向下继承的，
+     写成 :root 变量的话 --gradient-ai-angle 会在 :root 上就被定死成 0deg，
+     元素上的动画再怎么转都传不进去。
+     必须是 conic：linear-gradient 的颜色只跟一个轴有关，上下两条边永远同色同相位，
+     位移再怎么动也只能左右滑，出不来绕圈的效果 */
+  '.gradient-ai-flow': {
+    backgroundImage: `conic-gradient(from var(--gradient-ai-angle) at 50% 50%,
+        #00B4DB,
+        #9B59B6,
+        #E74C3C,
+        #F1C40F,
+        #27AE60,
+        #00B4DB)`,
+    animation: 'gradient-ai-spin 3s linear infinite'
   }
 }

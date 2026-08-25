@@ -96,10 +96,15 @@ export interface IMessage {
   cacheControl?: boolean // messages 缓存标识
   previousResponseId?: string // 历史上下文分叉点
 
-  basedId?: string // 消息是基于哪条用户消息的回答（assistant消息专属，会传给后端 basedId）
+  /* 「这条回答对应哪条提问」由下面两个字段共同表达，谁都不足以单独承担：
+   * - answeringClientId 每条回答都有，但不落库，页面一刷新就没了
+   * - basedId 落库、刷新后还在，但只有「刷新用户提问」这条路径才会写上
+   * 所以反查提问统一走 chat.findAnsweredQuestion()，两者都缺时再按位置回退 */
+  basedId?: string // 这条回答基于哪条用户消息的 messageId（assistant消息专属，落库；同时也是后端的插入位置指令）
+  answeringClientId?: string // 这条回答基于哪条用户消息的 clientId（assistant消息专属，仅前端不落库）
+
   sendType?: SendType // 消息发送的方式（仅前端不落库）
   isCurrentQuestion?: boolean // 是否当前提问问题（user消息专属，仅前端不落库）
-  answeringClientId?: string // 这条回答对应哪条用户消息的 clientId（assistant消息专属，仅前端不落库）
   persisting?: boolean // 这条消息是否正在落库（仅前端不落库）
 }
 

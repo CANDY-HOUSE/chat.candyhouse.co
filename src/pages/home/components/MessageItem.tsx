@@ -15,7 +15,6 @@ import { MessageState } from '@constants'
 import { Stack, Typography } from '@mui/material'
 import Box from '@mui/material/Box'
 import { useAtomValue } from 'jotai'
-import { motion } from 'motion/react'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MessageActions from './MessageActions'
@@ -234,8 +233,8 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
         </Box>
 
         <Box sx={{ overflow: 'hidden', flex: 'auto' }}>
-          <motion.div
-            style={{
+          <Box
+            sx={{
               position: 'relative',
               padding: '2px',
               borderRadius: '8px',
@@ -244,22 +243,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
           >
             {/* 渐变背景层 */}
             {isAnsweringCurrentQuestion && (
-              <motion.div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'var(--gradient-ai)',
-                  backgroundSize: '300% 100%'
-                }}
-                animate={{
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-                }}
-                transition={{
-                  duration: 3,
-                  ease: 'linear',
-                  repeat: Infinity
-                }}
-              />
+              <Box className="gradient-ai-flow" sx={{ position: 'absolute', inset: 0 }} />
             )}
 
             {/* 内容层 */}
@@ -283,7 +267,7 @@ const MessageItem: React.FC<Props> = ({ message, conversationId, isLastMessage, 
                 {metaData}
               </Typography>
             </Box>
-          </motion.div>
+          </Box>
         </Box>
       </Stack>
 

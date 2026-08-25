@@ -415,12 +415,14 @@ export const useAi = () => {
           toBeSendMessage.clientId = message.clientId
           toBeSendMessage.messageId = message.messageId
 
-          // 沿用旧回答的 answeringClientId，并让它对应的 user 提问重新亮起"工作中"动画
-          if (message.answeringClientId) {
-            toBeSendMessage.answeringClientId = message.answeringClientId
+          const messages = getAttrValue(conversationId, 'messages', topicId) ?? []
+          const question = chat.findAnsweredQuestion(messages, message)
+
+          if (question) {
+            toBeSendMessage.answeringClientId = question.clientId
             updateMessageByClientId(
               conversationId,
-              message.answeringClientId,
+              question.clientId,
               { isCurrentQuestion: true },
               topicId
             )
@@ -435,7 +437,7 @@ export const useAi = () => {
 
       handleSendMessage(conversationId, message, toBeSendMessage, topicId)
     },
-    [user?.isLogin, updateMessage, updateMessageByClientId, t]
+    [user?.isLogin, getAttrValue, updateMessage, updateMessageByClientId, t]
   )
 
   // 重置发送消息次数

@@ -224,6 +224,35 @@ const createTplMsg = (model: string, role: RoleType, sendType?: SendType): IMess
   ...(sendType && { sendType })
 })
 
+// 反查某条模型回答对应的用户提问。三级取值，逐级放宽：
+// 1. answeringClientId —— 本次会话内建立的精确关联，但不落库，刷新页面就没了
+// 2. basedId —— 刷新用户提问时落库的关联，页面刷新后依然在，只是覆盖不到普通提问
+// 3. 数组里紧邻其前的那条 user 消息 —— 前两者都缺时的位置兜底。
+//    刷新回答是原地替换、刷新提问是把新回答插到该提问之后，两种情况下
+//    「最近的前一条 user 消息」都仍然是正确答案
+const findAnsweredQuestion = (messages: IMessage[], answer: IMessage): IMessage | undefined => {
+  if (answer.role !== 'assistant') return undefined
+
+  if (answer.answeringClientId) {
+    const byClientId = messages.find((msg) => msg.clientId === answer.answeringClientId)
+    if (byClientId) return byClientId
+  }
+
+  if (answer.basedId) {
+    const byMessageId = messages.find((msg) => msg.messageId === answer.basedId)
+    if (byMessageId) return byMessageId
+  }
+
+  const answerIndex = messages.findIndex((msg) => msg.clientId === answer.clientId)
+  if (answerIndex === -1) return undefined
+
+  for (let i = answerIndex - 1; i >= 0; i--) {
+    if (messages[i]!.role === 'user') return messages[i]
+  }
+
+  return undefined
+}
+
 // 创建模版会话
 const createTplConv = (topicId: string, model: string): IConversation => {
   const conversationId = utils.getUUID()
@@ -288,6 +317,7 @@ export const chat = {
   createFileBlock,
   createTplMsg,
   createTplConv,
+  findAnsweredQuestion,
   countContentBlocksChars,
   blocksToMarkdown
 }
