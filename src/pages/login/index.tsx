@@ -7,7 +7,7 @@ import { Level } from '@constants'
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft'
 import { Box, Button, Link, Stack, TextField, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { utils } from '@utils'
+import { localKey, putLocalValue, utils } from '@utils'
 import React, { type ChangeEvent, type FormEvent, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -29,6 +29,17 @@ const LoginPage: React.FC = () => {
       if (data.isOk) {
         setUserData(data.data)
         setLoginStep(2)
+
+        const nextStep = data.data?.nextStep
+        if (nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_CUSTOM_CHALLENGE') {
+          const uuid = nextStep.additionalInfo?.USERNAME
+          if (uuid) {
+            putLocalValue(localKey.uuid, uuid)
+            gtag('set', {
+              user_id: uuid
+            })
+          }
+        }
       }
     })
   }

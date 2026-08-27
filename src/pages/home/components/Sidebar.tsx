@@ -25,7 +25,7 @@ import {
   userAtom,
   versionInfo
 } from '@/store'
-import { chat, localKey, putLocalValue, utils } from '@/utils'
+import { chat, utils } from '@/utils'
 import { apiConversationsGet, apiTopicsCreate, apiTopicsGet } from '@api'
 import { icons } from '@assets/icons'
 import { Level, ModelCategory } from '@constants'
@@ -129,13 +129,6 @@ const Sidebar = () => {
       handleCreateTopic()
     } else {
       setLoading(false)
-
-      // 初始化 gtag user_id
-      const uuid = list[0]!.subUUID
-      putLocalValue(localKey.uuid, uuid)
-      gtag('set', {
-        user_id: uuid
-      })
     }
   }
 

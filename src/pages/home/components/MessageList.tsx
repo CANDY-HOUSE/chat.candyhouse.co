@@ -45,7 +45,7 @@ const customStyle = {
   },
   fastScrollBox: {
     position: 'absolute',
-    left: '1.2rem',
+    left: 'var(--spacing-xs)',
     bottom: '1rem',
     zIndex: 1
   }
@@ -134,7 +134,7 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
       try {
         const param: {
           id: string
-          preAnchorTimestamp?: string
+          preAnchorKey?: string
           nextToken?: string
         } = { id: conversationId }
         const inAnchorMode = focusMessage?.conversationId === conversationId
@@ -143,7 +143,7 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
           // 刷新：回到最新消息，不带任何分页游标
           setFocusMessage(null)
         } else if (inAnchorMode) {
-          param.preAnchorTimestamp = nextToken
+          param.preAnchorKey = nextToken
         } else {
           param.nextToken = nextToken
         }

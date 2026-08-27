@@ -6,7 +6,7 @@ import {
 } from '@/api'
 import { activeTopicIdAtom, conversationsFamily, store, userAtom } from '@/store'
 import type { IConversation, IMessage } from '@/types/messagetypes'
-import { getLocalValue, localKey, logger } from '@/utils'
+import { logger } from '@/utils'
 import { cacheControlStrategy } from '@/utils/cacheControlStrategy'
 import { MessageState, SendType } from '@constants'
 import { useAtomValue } from 'jotai'
@@ -345,7 +345,6 @@ export const useConversation = () => {
       const { isEnd = true, topicId } = options || {}
       return new Promise<void>(async (resolve) => {
         const id = (topicId || store.get(activeTopicIdAtom))!
-        const uuid = getLocalValue<string>(localKey.uuid)
 
         updateConversations((prev) => {
           const updatedConvs = prev.map((conv) => {
@@ -403,7 +402,7 @@ export const useConversation = () => {
 
             // http request
             if (user?.isLogin) {
-              const msgCreateParam = { ..._message, topicId: id, uuid }
+              const msgCreateParam = { ..._message, topicId: id }
               const msgUpdateParam = {
                 content: _message.content,
                 state: _message.state,

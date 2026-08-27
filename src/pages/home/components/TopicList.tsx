@@ -56,8 +56,8 @@ interface Props {
 }
 
 export interface TopicListRef {
-  selectModel: (topicId: string, modelId: string, anchorTimestamp?: string) => void
-  clickTopic: (id: string, models: string[], anchorTimestamp?: string) => void
+  selectModel: (topicId: string, modelId: string, anchorKey?: string) => void
+  clickTopic: (id: string, models: string[], anchorKey?: string) => void
 }
 
 const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref) => {
@@ -173,26 +173,26 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   const conversationMessagesInit = async (
     model: string[] | string,
     convs: IConversation[],
-    anchorTimestamp?: string
+    anchorKey?: string
   ) => {
     const modelIds = Array.isArray(model) ? model : model ? [model] : []
     const targetConvs = convs.filter((item) => modelIds.includes(item.modelId))
 
     // 并行请求所有会话消息
     const fetchPromises = targetConvs
-      .filter((item) => item.messages?.length === 0 || anchorTimestamp)
+      .filter((item) => item.messages?.length === 0 || anchorKey)
       .map(async (item) => {
         const param: {
           id: string
           limit?: number
-          preAnchorTimestamp?: string
-          nextAnchorTimestamp?: string
+          preAnchorKey?: string
+          nextAnchorKey?: string
         } = { id: item.conversationId }
 
-        if (anchorTimestamp) {
+        if (anchorKey) {
           param.limit = 5
-          param.preAnchorTimestamp = anchorTimestamp
-          param.nextAnchorTimestamp = anchorTimestamp
+          param.preAnchorKey = anchorKey
+          param.nextAnchorKey = anchorKey
         }
 
         const res = await apiMessagesGet(param)
@@ -209,9 +209,9 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   }
 
   // 话题 展开/收起
-  const handleTopicClick = async (id: string, models: string[], anchorTimestamp?: string) => {
-    if (id === activeTopicId && !anchorTimestamp) return
-    if (!anchorTimestamp && focusMessage) {
+  const handleTopicClick = async (id: string, models: string[], anchorKey?: string) => {
+    if (id === activeTopicId && !anchorKey) return
+    if (!anchorKey && focusMessage) {
       updateAttrsValue(
         focusMessage.conversationId,
         {
@@ -233,14 +233,14 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
         setConversations(convs)
       }
 
-      await conversationMessagesInit(models, convs, anchorTimestamp)
+      await conversationMessagesInit(models, convs, anchorKey)
     } else {
       resetConversations(id)
     }
   }
 
   // 模型会话勾选
-  const handleModelSelect = async (id: string, model: string, anchorTimestamp?: string) => {
+  const handleModelSelect = async (id: string, model: string, anchorKey?: string) => {
     const tIndex = topics.findIndex((item) => item.id === id)
 
     const finalModels = [...topics[tIndex]!.models]
@@ -251,7 +251,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
       // 模型勾选
       finalModels.push(model)
     } else {
-      if (anchorTimestamp) return
+      if (anchorKey) return
       // 取消模型勾选
       finalModels.splice(mIndex, 1)
     }
@@ -267,7 +267,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     })
 
     // 未登录时不拉消息列表（本地无远端消息），落库失败已回滚也不必拉
-    if (outcome.status !== 'committed' || anchorTimestamp) return
+    if (outcome.status !== 'committed' || anchorKey) return
 
     // 更新消息列表
     if (isCheck) {
@@ -429,11 +429,11 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   }
 
   useImperativeHandle(ref, () => ({
-    selectModel: async (topicId: string, modelId: string, anchorTimestamp?: string) => {
-      await handleModelSelect(topicId, modelId, anchorTimestamp)
+    selectModel: async (topicId: string, modelId: string, anchorKey?: string) => {
+      await handleModelSelect(topicId, modelId, anchorKey)
     },
-    clickTopic: async (id: string, models: string[], anchorTimestamp?: string) => {
-      await handleTopicClick(id, models, anchorTimestamp)
+    clickTopic: async (id: string, models: string[], anchorKey?: string) => {
+      await handleTopicClick(id, models, anchorKey)
     }
   }))
 

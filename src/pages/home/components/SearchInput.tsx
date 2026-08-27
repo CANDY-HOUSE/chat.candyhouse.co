@@ -66,10 +66,10 @@ const SearchInput: React.FC<Props> = ({ topicListRef }) => {
     switchDialog({ visible: false })
     const { topicId, model, conversationId, messageId } = message
     const modelId = model ? `${model}#${conversationId}` : ''
-    const createdAt = message.createdAt ? `${message.createdAt}#${messageId}` : ''
+    const anchorKey = message.createdAt ? `${message.createdAt}#${messageId}` : ''
 
-    await topicListRef?.selectModel(topicId, modelId, createdAt)
-    await topicListRef?.clickTopic(topicId, [modelId], createdAt)
+    await topicListRef?.selectModel(topicId, modelId, anchorKey)
+    await topicListRef?.clickTopic(topicId, [modelId], anchorKey)
     setFocusMessage({ messageId, conversationId })
   }
 
