@@ -112,7 +112,6 @@ export interface ITopics {
   id: string
   name: string
   models: string[]
-  subUUID?: string
   order?: string
   version?: number
 }

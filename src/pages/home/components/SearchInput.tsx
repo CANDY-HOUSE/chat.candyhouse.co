@@ -64,12 +64,12 @@ const SearchInput: React.FC<Props> = ({ topicListRef }) => {
 
   const handleJumpToMessage = async (message: IMessageSearch) => {
     switchDialog({ visible: false })
-    const { topicId, model, conversationId, messageId } = message
-    const modelId = model ? `${model}#${conversationId}` : ''
-    const anchorKey = message.createdAt ? `${message.createdAt}#${messageId}` : ''
+    const { topicId, conversationId, messageId, createdAt } = message
+    const anchorKey = createdAt ? `${createdAt}#${messageId}` : ''
 
-    await topicListRef?.selectModel(topicId, modelId, anchorKey)
-    await topicListRef?.clickTopic(topicId, [modelId], anchorKey)
+    const jumped = await topicListRef?.jumpToMessage({ topicId, conversationId, anchorKey })
+    if (!jumped) return
+
     setFocusMessage({ messageId, conversationId })
   }
 

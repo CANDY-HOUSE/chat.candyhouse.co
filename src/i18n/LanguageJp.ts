@@ -6,6 +6,7 @@ export const languageJa = {
     save: '保存'
   },
   noResult: '結果が見つかりませんでした',
+  convGone: 'この会話は削除されています',
   openFile: 'ファイルを開く',
   set: '設定',
   createTopic: 'トピックを作成',

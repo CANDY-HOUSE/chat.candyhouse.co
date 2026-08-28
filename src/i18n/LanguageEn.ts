@@ -6,6 +6,7 @@ export const languageEn = {
     save: 'Save'
   },
   noResult: 'No results found',
+  convGone: 'This conversation no longer exists',
   openFile: 'Open File',
   set: 'Settings',
   createTopic: 'Create Topic',

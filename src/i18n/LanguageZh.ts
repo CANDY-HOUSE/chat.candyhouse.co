@@ -6,6 +6,7 @@ export const languageZh = {
     save: '保存'
   },
   noResult: '暂无结果',
+  convGone: '该会话已删除',
   openFile: '打开文件',
   set: '设置',
   createTopic: '创建话题',

@@ -6,6 +6,7 @@ export const languageZhTw = {
     save: '儲存'
   },
   noResult: '暫無結果',
+  convGone: '該會話已刪除',
   openFile: '開啟檔案',
   set: '設定',
   createTopic: '建立話題',

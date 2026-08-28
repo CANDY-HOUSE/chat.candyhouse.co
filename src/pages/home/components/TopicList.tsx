@@ -21,12 +21,15 @@ import {
   bootstrappedAtom,
   conversationsAtom,
   focusMessageAtom,
+  store,
   switchAnchor,
+  switchToast,
   topicsAtom,
   userAtom
 } from '@/store'
 import type { IConversation, ITopics } from '@/types/messagetypes'
 import { chat, enhanceEventParams, resolveConversationTitle } from '@/utils'
+import { Level } from '@constants'
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -55,9 +58,19 @@ interface Props {
   loading?: boolean
 }
 
+/* 搜索结果跳转的目标。这里只认 conversationId：
+ * modelId 的形态是 `${modelName}#${conversationId}`，modelName 在会话创建时定型且是
+ * DynamoDB 的 SK，模型升级（replacedBy）后不会回写；而消息里的 model 记录的是这条消息
+ * 实际使用的模型（已升级后的新名）。两者必然分叉，所以调用方不允许自己拼 modelId，
+ * 真实值只能由这里从会话列表反查。 */
+export interface JumpTarget {
+  topicId: string
+  conversationId: string
+  anchorKey?: string
+}
+
 export interface TopicListRef {
-  selectModel: (topicId: string, modelId: string, anchorKey?: string) => void
-  clickTopic: (id: string, models: string[], anchorKey?: string) => void
+  jumpToMessage: (target: JumpTarget) => Promise<boolean>
 }
 
 const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref) => {
@@ -113,7 +126,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
         // 选中态跟随本地列表立刻切换，不等落库结果
         if (topicId === activeTopicId) {
           if (list.length > 0) {
-            handleTopicClick(list[0]!.id, list[0]!.models)
+            handleTopicClick(list[0]!.id)
           } else {
             setActiveTopicId('')
           }
@@ -169,6 +182,61 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     return list
   }
 
+  // 取话题的会话列表：本地没有再拉远端。fromServer 标记本次是否为权威数据
+  const ensureConversations = async (topicId: string) => {
+    const cached = getConversations(topicId)
+    if (cached && cached.length > 0) return { convs: cached, fromServer: false }
+
+    const convs = (await apiConversationsGet(topicId)) ?? []
+    setConversations(convs, topicId)
+
+    return { convs, fromServer: true }
+  }
+
+  // 话题当前的勾选项（权威值取自 topicsAtom，避免闭包里的旧快照）
+  const topicModels = (topicId: string) =>
+    store.get(topicsAtom).find((item) => item.id === topicId)?.models ?? []
+
+  // 收敛话题的勾选项：剔除库里已不存在的 modelId，并按需补勾一个会话（两件事合成一次写库）
+  //
+  // 脏数据来源：早期搜索跳转会用 message.model 现拼 modelId，模型升级后拼出的 id 在库中
+  // 并不存在，却被 apiTopicsUpdate 持久化进了 topics.models。这类 id 永远匹配不到任何会话，
+  // 会让 checkedConversationsAtom 把该会话过滤掉——即使消息拉回来了也不渲染。
+  const syncTopicModels = async (
+    topicId: string,
+    convs: IConversation[],
+    options: { ensureModelId?: string; prune?: boolean } = {}
+  ): Promise<string[]> => {
+    const { ensureModelId, prune = false } = options
+    const current = topicModels(topicId)
+    // 会话列表为空时无从判断真伪，保持原样
+    if (convs.length === 0) return current
+
+    const valid = new Set(convs.map((item) => item.modelId))
+    // 剔除只在 convs 刚从服务端取回时才可信：本地缓存可能落后于别处（另一端/另一标签页）
+    // 新建的会话，拿它去比对会把合法的勾选项误删掉
+    const next = prune ? current.filter((id) => valid.has(id)) : [...current]
+
+    if (ensureModelId && valid.has(ensureModelId) && !next.includes(ensureModelId)) {
+      next.push(ensureModelId)
+    }
+
+    if (next.length === current.length && next.every((id, i) => id === current[i])) return current
+
+    const rollback = snapshotAtom(topicsAtom)
+    const outcome = await runOptimistic({
+      apply: () =>
+        setTopics((prev) =>
+          prev.map((item) => (item.id === topicId ? { ...item, models: next } : item))
+        ),
+      commit: () => apiTopicsUpdate({ id: topicId, models: next }),
+      rollback,
+      failMessage: t('SubmissionFail')
+    })
+
+    return outcome.status === 'failed' ? current : next
+  }
+
   // 初始化会话消息列表
   const conversationMessagesInit = async (
     model: string[] | string,
@@ -209,9 +277,10 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   }
 
   // 话题 展开/收起
-  const handleTopicClick = async (id: string, models: string[], anchorKey?: string) => {
-    if (id === activeTopicId && !anchorKey) return
-    if (!anchorKey && focusMessage) {
+  const handleTopicClick = async (id: string) => {
+    if (id === activeTopicId) return
+    if (focusMessage) {
+      // 上次跳转留下的是 5 条的锚点片段，切走时丢掉，下次进来才会整体重拉
       updateAttrsValue(
         focusMessage.conversationId,
         {
@@ -226,22 +295,66 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     setEditId('')
 
     if (user?.isLogin) {
-      let convs = getConversations(id)
+      const { convs, fromServer } = await ensureConversations(id)
+      // 存量脏数据自愈，并用收敛后的勾选项去拉消息
+      const effective = await syncTopicModels(id, convs, { prune: fromServer })
 
-      if (!convs || convs.length === 0) {
-        convs = await apiConversationsGet(id)
-        setConversations(convs)
-      }
-
-      await conversationMessagesInit(models, convs, anchorKey)
+      await conversationMessagesInit(effective, convs)
     } else {
       resetConversations(id)
     }
   }
 
+  // 搜索结果跳转：以 conversationId 为身份定位会话，真实 modelId 由会话列表反查
+  const jumpToMessage = async ({
+    topicId,
+    conversationId,
+    anchorKey
+  }: JumpTarget): Promise<boolean> => {
+    if (!user?.isLogin) return false
+
+    // 上一次跳转的锚点片段属于切换前的话题，换目标前先丢掉，
+    // 否则那个会话会一直停在残缺状态（messages 非空 → 不会再整体重拉）
+    if (focusMessage) {
+      if (focusMessage.conversationId !== conversationId) {
+        updateAttrsValue(
+          focusMessage.conversationId,
+          {
+            messages: [],
+            nextToken: null
+          },
+          activeTopicId!
+        )
+      }
+      setFocusMessage(null)
+    }
+
+    setActiveTopicId(topicId)
+    setEditId('')
+
+    const { convs, fromServer } = await ensureConversations(topicId)
+    const conv = convs.find((item) => item.conversationId === conversationId)
+
+    if (!conv) {
+      switchToast({ visible: true, message: t('convGone'), level: Level.error })
+      return false
+    }
+
+    await syncTopicModels(topicId, convs, { ensureModelId: conv.modelId, prune: fromServer })
+    await conversationMessagesInit(conv.modelId, convs, anchorKey)
+
+    return true
+  }
+
   // 模型会话勾选
-  const handleModelSelect = async (id: string, model: string, anchorKey?: string) => {
+  const handleModelSelect = async (id: string, model: string) => {
     const tIndex = topics.findIndex((item) => item.id === id)
+    if (tIndex < 0) return
+
+    // 防脏写：库里不存在的 modelId 一旦落进 topics.models，该会话就永远勾不上、也不会渲染。
+    // 会话列表还没加载时无从校验，放行（此时调用方只可能是本组件内已展开的话题）
+    const existing = getConversations(id)
+    if (existing && existing.length > 0 && !existing.some((item) => item.modelId === model)) return
 
     const finalModels = [...topics[tIndex]!.models]
     const mIndex = finalModels.indexOf(model)
@@ -251,7 +364,6 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
       // 模型勾选
       finalModels.push(model)
     } else {
-      if (anchorKey) return
       // 取消模型勾选
       finalModels.splice(mIndex, 1)
     }
@@ -267,7 +379,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     })
 
     // 未登录时不拉消息列表（本地无远端消息），落库失败已回滚也不必拉
-    if (outcome.status !== 'committed' || anchorKey) return
+    if (outcome.status !== 'committed') return
 
     // 更新消息列表
     if (isCheck) {
@@ -421,7 +533,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     if (loading) return
 
     if (topics.length > 0) {
-      await handleTopicClick(topics[0]!.id, topics[0]!.models)
+      await handleTopicClick(topics[0]!.id)
     }
 
     // 无论有没有话题都要撤骨架屏：登录用户 0 话题时走的是乐观新建分支
@@ -429,12 +541,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   }
 
   useImperativeHandle(ref, () => ({
-    selectModel: async (topicId: string, modelId: string, anchorKey?: string) => {
-      await handleModelSelect(topicId, modelId, anchorKey)
-    },
-    clickTopic: async (id: string, models: string[], anchorKey?: string) => {
-      await handleTopicClick(id, models, anchorKey)
-    }
+    jumpToMessage
   }))
 
   useEffect(() => {
@@ -498,7 +605,7 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
                 }
               >
                 <ListItemButton
-                  onClick={() => handleTopicClick(item.id, item.models)}
+                  onClick={() => handleTopicClick(item.id)}
                   selected={activeTopicId === item.id}
                   sx={{
                     pl: 'var(--spacing-sm)',

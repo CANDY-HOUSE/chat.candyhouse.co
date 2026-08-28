@@ -44,7 +44,7 @@ function createLocalStorageAtom<T>(
 // ========== UI Layout Atoms ==========
 export const isShowSideBarAtom = atom<boolean>(false)
 export const editorExpandedAtom = atom<boolean>(false)
-export const focusMessageAtom = atom<{ messageId: string; conversationId: string } | null>(null)
+export const focusMessageAtom = atom<{ messageId: string; conversationId: string } | null>(null) // 当前聚焦的消息，用于跳转到指定消息
 
 // ========== Size Configuration Atoms ==========
 export const editorHeightAtom = createLocalStorageAtom<number>(

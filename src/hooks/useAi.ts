@@ -242,7 +242,7 @@ export const useAi = () => {
     let modelThought: string = '' // 模型的思考
     const model = getModelName(modelInfo.modelName)
 
-    // 回写 modelName；运行态字段不应持久化。
+    // 回写 modelName
     if (model !== modelInfo.modelName) {
       updateModelInfo(conversationId, { modelName: model }, topicId)
       const { atWork, disable, ...persistedModelInfo } = modelInfo
