@@ -6,7 +6,6 @@ import { IModelInfo } from '@/types/messagetypes'
 import { apiConversationsUpdate } from '@api'
 import { Level } from '@constants'
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices'
-import DeleteIcon from '@mui/icons-material/Delete'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import SettingsIcon from '@mui/icons-material/Settings'
@@ -28,7 +27,7 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
   const { isMobile } = useMediaQueryContext()
   const { t } = useTranslation()
   const user = useAtomValue(userAtom)
-  const { getAttrValue, updateModelInfo, deleteMessage, deleteConversation } = useConversation()
+  const { getAttrValue, updateModelInfo, deleteMessage } = useConversation()
   const modelName = getAttrValue(conversationId, 'modelInfo')?.modelName ?? ''
   // 打开弹窗时才取基线快照。React.memo(Settings) + 非响应式 store.get 会把渲染期读到的
   // modelInfo 冻结在首次挂载，导致 isEqual 基线陈旧、关闭弹窗时把 useAi 写入的
@@ -85,29 +84,6 @@ const Settings: React.FC<Props> = ({ conversationId, isVertical, style }) => {
           'model_management',
           enhanceEventParams({
             action_type: 'clear_history',
-            model_name: modelName
-          })
-        )
-      }
-    },
-    {
-      text: t('delCurChat'),
-      icon: (
-        <DeleteIcon
-          sx={{
-            fontSize: 'var(--icon-size-small)'
-          }}
-        />
-      ),
-      handle(id: string) {
-        deleteConversation(id)
-        switchAnchor({ children: null })
-
-        gtag(
-          'event',
-          'model_management',
-          enhanceEventParams({
-            action_type: 'remove',
             model_name: modelName
           })
         )

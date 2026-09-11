@@ -85,8 +85,13 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
   const [editId, setEditId] = useState<string>() // 当前编辑的话题
   const [bootstrapped, setBootstrapped] = useAtom(bootstrappedAtom)
 
-  const { resetConversations, getConversations, setConversations, updateAttrsValue } =
-    useConversation()
+  const {
+    resetConversations,
+    getConversations,
+    setConversations,
+    updateAttrsValue,
+    deleteConversation
+  } = useConversation()
   const { updateAttrsValue: updateTopicAttrsValue } = useTopic()
   const { runOptimistic } = useOptimistic()
 
@@ -388,6 +393,26 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
     }
   }
 
+  // 删除会话：入口在侧边栏会话行（PC hover / 移动端常显），埋点沿用原 ⋮ 菜单项
+  const handleConvDelete = async (
+    e: React.MouseEvent<HTMLElement>,
+    topicId: string,
+    conv: IConversation
+  ) => {
+    e.stopPropagation() // 否则会冒泡到 ListItemButton，顺手把这条会话的勾选态也切了
+
+    await deleteConversation(conv.conversationId, topicId)
+
+    gtag(
+      'event',
+      'model_management',
+      enhanceEventParams({
+        action_type: 'remove',
+        model_name: conv.modelInfo?.modelName ?? ''
+      })
+    )
+  }
+
   // ‘更多’操作按钮点击
   const handleActionClick = async (e: React.MouseEvent<HTMLElement>, topicId: string) => {
     e.stopPropagation()
@@ -638,11 +663,43 @@ const TopicList = React.forwardRef<TopicListRef, Props>(({ loading = true }, ref
                     onItemsReordered={(data, info) => handleConvSort(data, info, item.models)}
                   >
                     {(conv) => (
-                      <ListItem disablePadding>
+                      <ListItem
+                        disablePadding
+                        sx={{
+                          // 触屏设备（hover: none）不进这个块，按钮保持默认显示——即常显。
+                          // 用 (hover: hover) 而不是 isMobile：isMobile 是视口宽度判断，
+                          // 窄窗口的桌面浏览器同样有 hover，按指针能力分支才对
+                          '@media (hover: hover)': {
+                            '& .conv-delete': { display: 'none' },
+                            '&:hover .conv-delete': { display: 'inline-flex' }
+                          }
+                        }}
+                        secondaryAction={
+                          <IconButton
+                            edge="end"
+                            className="conv-delete"
+                            aria-label={t('delete')}
+                            // dnd 的 listeners 摊在 DragList 包裹整行的那个 div 上，这三个
+                            // 必须拦，否则移动端按住删除按钮超过 250ms 会把整行拖起来
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onClick={(e) => handleConvDelete(e, item.id, conv)}
+                          >
+                            <DeleteIcon
+                              sx={{
+                                fontSize: 'var(--icon-size-small)',
+                                color: 'var(--text-secondary)',
+                                '&:hover': { color: 'error.main' }
+                              }}
+                            />
+                          </IconButton>
+                        }
+                      >
                         <ListItemButton
                           dense
                           onClick={() => handleModelSelect(item.id, conv.modelId)}
-                          sx={{ pl: 'var(--spacing-sm)' }}
+                          sx={{ pl: 'var(--spacing-sm)', pr: '2.5rem' }}
                         >
                           <ListItemIcon sx={{ minWidth: '32px' }}>
                             <Checkbox

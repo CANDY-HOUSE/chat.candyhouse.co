@@ -70,11 +70,13 @@
     "start": "craco start",
     "prod": "env-cmd -f .env.production craco start",
     "build": "craco build",
-    "test": "react-scripts test",
+    "test": "react-scripts test --watchAll=false",
     "eject": "react-scripts eject",
     "prebuild": "node generate-version.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "typecheck": "tsc --noEmit",
+    "check": "bash scripts/check.sh",
     "clean:all": "rm -rf node_modules package-lock.json && npm cache clean --force"
   },
   "eslintConfig": {
