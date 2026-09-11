@@ -13,6 +13,7 @@ export const languageZh = {
   delCurChat: '删除当前会话',
   language: '语言',
   fullscreen: '最大化',
+  viewSwitch: '视图切换',
   delete: '删除',
   fileCache: '缓存',
   exportChat: '导出对话记录',

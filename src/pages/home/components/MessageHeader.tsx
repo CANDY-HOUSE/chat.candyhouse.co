@@ -14,7 +14,6 @@ import React, { type FC, useEffect, useMemo, useRef } from 'react'
 
 interface Props {
   conversation: IConversation
-  panelRef: React.RefObject<HTMLDivElement | null>
 }
 
 const customStyle = {
@@ -28,46 +27,31 @@ const customStyle = {
   }
 }
 
-const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
+const MessageHeader: FC<Props> = ({ conversation }) => {
   const { isMobile } = useMediaQueryContext()
-  const { widths, setWidths } = useMessageListContext()
+  const { widths, viewSwitch, setViewSwitch } = useMessageListContext()
   const viewType = useAtomValue(viewTypeAtom)
   const focusMessage = useAtomValue(focusMessageAtom)
   const { updateModelInfo } = useConversation()
   const { conversationId, modelInfo, messages } = conversation
-  const widthItem = widths.find((item) => item.id === conversationId)
   const realtimeAudioRef = useRef<RealtimeAudioRef>(null)
 
   const isShowStopBtn = useMemo(() => {
     return modelInfo.atWork && !modelInfo.modelName.includes('realtime')
   }, [modelInfo.atWork, modelInfo.modelName])
 
+  // 标题点击：与新的"视图切换"按钮共用同一份 viewSwitch 状态（只做 normal⟷整屏 的快捷跳转，
+  // 不参与 third/half 两档循环）。不是当前主控者时点击→抢占为整屏主控；已是主控者（任意档位）
+  // 时点击自己的标题→collapse回 normal。forceExpanded 用于搜索跳转场景，始终强制跳到整屏。
   const expandToggle = (forceExpanded?: boolean) => {
     if (widths.length <= 1 || isMobile) return
 
-    const newWidths = [...widths]
-    const itemIndex = newWidths.findIndex((item) => item.id === conversationId)
+    const isOwner = viewSwitch?.ownerId === conversationId
 
-    if (itemIndex !== -1) {
-      const expanded = forceExpanded !== undefined ? forceExpanded : !newWidths[itemIndex]!.expanded
-      newWidths[itemIndex]!.expanded = expanded
-      newWidths[itemIndex]!.width = expanded
-        ? panelRef.current!.offsetWidth
-        : newWidths[itemIndex]!.orignalWidth
-      setWidths(newWidths)
-
-      // 当展开时，让其自动滚动到可视区域
-      if (expanded) {
-        setTimeout(() => {
-          const panel = panelRef.current
-          const msgList = panel?.querySelector(
-            `.conversation-item-wrapper[data-id="${conversationId}"]`
-          )
-          if (msgList) {
-            msgList.scrollIntoView({ behavior: 'smooth', inline: 'end' })
-          }
-        }, 300)
-      }
+    if (forceExpanded || !isOwner) {
+      setViewSwitch({ ownerId: conversationId, level: 'full' })
+    } else {
+      setViewSwitch(null)
     }
   }
 
@@ -121,7 +105,7 @@ const MessageHeader: FC<Props> = ({ conversation, panelRef }) => {
           noWrap
           title={resolveConversationTitle(modelInfo)}
           sx={{
-            fontWeight: widthItem?.expanded ? 'bold' : 'normal',
+            fontWeight: viewSwitch?.ownerId === conversationId ? 'bold' : 'normal',
             maxWidth: isMobile ? '50%' : 'none',
             cursor: widths.length > 1 ? 'pointer' : 'default'
           }}

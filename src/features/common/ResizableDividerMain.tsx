@@ -9,13 +9,15 @@ interface Props {
   channelsWidth: WidthItem[]
   onResize: (newWidth: number) => void
   panelRef: React.RefObject<HTMLDivElement | null>
+  disabled?: boolean
 }
 
 export const ResizableDividerMain: React.FC<Props> = ({
   index,
   channelsWidth,
   onResize,
-  panelRef
+  panelRef,
+  disabled
 }) => {
   const startXRef = useRef(0)
   const [moveDisable, setMoveDisable] = useState(false)
@@ -25,7 +27,7 @@ export const ResizableDividerMain: React.FC<Props> = ({
     const bg = isDragging ? 'var(--grey-400)' : 'var(--color-background)'
 
     const result = {
-      cursor: 'ew-resize',
+      cursor: disabled ? 'not-allowed' : 'ew-resize',
       width: isDragging ? `5px` : `${UI_CONSTANTS.resizeLineWidth}px`,
       flex: 'none',
       position: 'relative',
@@ -43,11 +45,12 @@ export const ResizableDividerMain: React.FC<Props> = ({
     }
 
     return result
-  }, [isDragging, moveDisable])
+  }, [isDragging, moveDisable, disabled])
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
+      if (disabled) return
       // 记录鼠标按下时 起始位置&初始宽度
       setIsDragging(true)
       startXRef.current = e.clientX
@@ -55,7 +58,7 @@ export const ResizableDividerMain: React.FC<Props> = ({
       if (!channelWidth) return
       setInitWidth(channelWidth.width)
     },
-    [channelsWidth, index]
+    [channelsWidth, index, disabled]
   )
 
   const handleMouseMove = useCallback(

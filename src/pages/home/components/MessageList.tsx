@@ -1,11 +1,16 @@
+import { TooltipButton } from '@/components/TooltipButton'
+import { useMediaQueryContext } from '@/context/MediaQueryContext'
+import { useMessageListContext } from '@/context/MessageListContext'
 import { useConversation } from '@/hooks/useConversation'
 import { focusMessageAtom } from '@/store'
 import { type IConversation, type IMessage } from '@/types/messagetypes'
+import { cycleViewSwitchLevel } from '@/utils'
 import { apiMessagesGet } from '@api'
 import { ScrollState, SendType } from '@constants'
 import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown'
 import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp'
 import SouthIcon from '@mui/icons-material/South'
+import SwapHorizontalIcon from '@mui/icons-material/SwapHorizontalCircleOutlined'
 import { Box, Button, IconButton } from '@mui/material'
 import { useAtom } from 'jotai'
 import { throttle } from 'lodash-es'
@@ -17,7 +22,6 @@ import MessageItem from './MessageItem'
 
 interface Props {
   conversation: IConversation
-  panelRef: React.RefObject<HTMLDivElement | null>
   swiperRef?: React.RefObject<SwiperRef | null>
 }
 
@@ -51,11 +55,24 @@ const customStyle = {
   }
 }
 
-const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => {
+const MessageList: React.FC<Props> = ({ conversation, swiperRef }) => {
   const { t } = useTranslation()
+  const { isMobile } = useMediaQueryContext()
+  const { widths, viewSwitch, setViewSwitch } = useMessageListContext()
   const [focusMessage, setFocusMessage] = useAtom(focusMessageAtom)
   const [scrollState, setScrollState] = useState(ScrollState.null)
   const { updateAttrsValue } = useConversation()
+
+  const isViewSwitchOwner = viewSwitch?.ownerId === conversation.conversationId
+
+  const handleViewSwitchClick = () => {
+    if (!isViewSwitchOwner) {
+      setViewSwitch({ ownerId: conversation.conversationId, level: 'third' })
+      return
+    }
+    const next = cycleViewSwitchLevel(viewSwitch!.level)
+    setViewSwitch(next ? { ownerId: conversation.conversationId, level: next } : null)
+  }
 
   const conversationRef = useRef(conversation)
   const isLoadingRef = useRef(false)
@@ -416,7 +433,7 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
 
   return (
     <>
-      <MessageHeader panelRef={panelRef} conversation={conversation} />
+      <MessageHeader conversation={conversation} />
 
       <Box sx={customStyle.container}>
         <Box
@@ -459,8 +476,8 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
         </Box>
       </Box>
 
-      {/* 一键滚动 */}
-      {scrollState !== ScrollState.null && (
+      {/* 一键滚动 + 视图切换 */}
+      {(scrollState !== ScrollState.null || (!isMobile && widths.length > 1)) && (
         <Box sx={customStyle.fastScrollBox}>
           <Box
             sx={{
@@ -468,23 +485,36 @@ const MessageList: React.FC<Props> = ({ conversation, panelRef, swiperRef }) => 
               flexDirection: 'column'
             }}
           >
-            {scrollState !== ScrollState.top && (
-              <IconButton onClick={scrollToTop}>
-                <ArrowCircleUpIcon
-                  sx={{
-                    fontSize: 'var(--icon-size)'
-                  }}
-                />
-              </IconButton>
+            {scrollState !== ScrollState.null && (
+              <>
+                {scrollState !== ScrollState.top && (
+                  <IconButton onClick={scrollToTop}>
+                    <ArrowCircleUpIcon
+                      sx={{
+                        fontSize: 'var(--icon-size)'
+                      }}
+                    />
+                  </IconButton>
+                )}
+                {scrollState !== ScrollState.bottom && (
+                  <IconButton onClick={() => scrollToBottom('smooth')}>
+                    <ArrowCircleDownIcon
+                      sx={{
+                        fontSize: 'var(--icon-size)'
+                      }}
+                    />
+                  </IconButton>
+                )}
+              </>
             )}
-            {scrollState !== ScrollState.bottom && (
-              <IconButton onClick={() => scrollToBottom('smooth')}>
-                <ArrowCircleDownIcon
-                  sx={{
-                    fontSize: 'var(--icon-size)'
-                  }}
-                />
-              </IconButton>
+
+            {!isMobile && widths.length > 1 && (
+              <TooltipButton
+                tooltip={t('viewSwitch')}
+                icon={<SwapHorizontalIcon sx={{ fontSize: 'var(--icon-size)' }} />}
+                onClick={handleViewSwitchClick}
+                sx={{ color: isViewSwitchOwner ? 'var(--accent--primary)' : undefined }}
+              />
             )}
           </Box>
         </Box>

@@ -13,6 +13,7 @@ export const languageJa = {
   delCurChat: '現在のチャットを削除',
   language: '言語',
   fullscreen: '最大化する',
+  viewSwitch: '表示切替',
   delete: '削除',
   fileCache: 'キャッシュ',
   exportChat: '会話履歴をエクスポート',

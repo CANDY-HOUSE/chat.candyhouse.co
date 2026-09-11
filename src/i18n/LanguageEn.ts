@@ -13,6 +13,7 @@ export const languageEn = {
   delCurChat: 'Delete Current Chat',
   language: 'Language',
   fullscreen: 'Maximize',
+  viewSwitch: 'Switch View',
   delete: 'Delete',
   fileCache: 'File Cache',
   exportChat: 'Export history',

@@ -4,25 +4,34 @@ export interface WidthItem {
   id: string
   width: number
   orignalWidth: number
-  expanded?: boolean
+}
+
+export type ViewSwitchLevel = 'third' | 'half' | 'full'
+
+export interface ViewSwitchState {
+  ownerId: string
+  level: ViewSwitchLevel
 }
 
 const MessageListContext = React.createContext<{
   widths: WidthItem[]
   setWidths: React.Dispatch<React.SetStateAction<WidthItem[]>>
-  expandedIndex: number
+  viewSwitch: ViewSwitchState | null
+  setViewSwitch: React.Dispatch<React.SetStateAction<ViewSwitchState | null>>
 }>({
   widths: [],
   setWidths: () => {},
-  expandedIndex: -1
+  viewSwitch: null,
+  setViewSwitch: () => {}
 })
 
 export const MessageListProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [widths, setWidths] = useState<WidthItem[]>([])
+  const [viewSwitch, setViewSwitch] = useState<ViewSwitchState | null>(null)
 
   const value = useMemo(
-    () => ({ widths, setWidths, expandedIndex: widths.findIndex((w) => w.expanded) }),
-    [widths]
+    () => ({ widths, setWidths, viewSwitch, setViewSwitch }),
+    [widths, viewSwitch]
   )
 
   return <MessageListContext.Provider value={value}>{children}</MessageListContext.Provider>

@@ -13,6 +13,7 @@ export const languageZhTw = {
   delCurChat: '刪除當前會話',
   language: '語言',
   fullscreen: '最大化',
+  viewSwitch: '檢視切換',
   delete: '刪除',
   fileCache: '快取',
   exportChat: '匯出對話記錄',

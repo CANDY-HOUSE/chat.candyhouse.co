@@ -1,6 +1,6 @@
 import Loading from '@/components/Loading'
 import { useMediaQueryContext } from '@/context/MediaQueryContext'
-import { useMessageListContext } from '@/context/MessageListContext'
+import { useMessageListContext, type WidthItem } from '@/context/MessageListContext'
 import { ResizableDivider } from '@/features/common/ResizableDivider'
 import { ResizableDividerMain } from '@/features/common/ResizableDividerMain'
 import EditorPanel from '@/features/editor/EditorPanel'
@@ -17,6 +17,11 @@ import {
   viewTypeAtom
 } from '@/store'
 import type { IConversation } from '@/types/messagetypes'
+import {
+  computeViewSwitchWidths,
+  getViewSwitchParticipants,
+  getViewSwitchScrollOffset
+} from '@/utils'
 import { ViewModel } from '@constants'
 import { Box } from '@mui/material'
 import type { PrimitiveAtom } from 'jotai'
@@ -50,7 +55,7 @@ const customStyle = {
 
 const MainContent = () => {
   const { isMobile } = useMediaQueryContext()
-  const { widths, setWidths, expandedIndex } = useMessageListContext()
+  const { widths, setWidths, viewSwitch, setViewSwitch } = useMessageListContext()
   const { updateModelInfo } = useConversation()
   const activeTopicId = useAtomValue(activeTopicIdAtom)
   const loading = useAtomValue(loadingAtom)
@@ -66,9 +71,29 @@ const MainContent = () => {
   const [layoutReady, setLayoutReady] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
+  // 真正横向滚动的那一层（会话行本身）；containerRef 是它的祖先容器，只用来读取
+  // "可用宽度"——程序化滚动必须作用在真正设了 overflowX 的这层上，不能用 containerRef。
+  const scrollRowRef = useRef<HTMLDivElement>(null)
   const swiperRef = useRef<SwiperRef>(null)
   const conversationsRef = useRef(conversations)
   conversationsRef.current = conversations
+  const viewSwitchRef = useRef(viewSwitch)
+  viewSwitchRef.current = viewSwitch
+  const widthsRef = useRef(widths)
+  widthsRef.current = widths
+
+  // 会话顺序的稳定 key：数量不变但拖拽排序改变了顺序时也会变化，
+  // 用于驱动视图切换的邻居重算（见 applyViewSwitch）
+  const orderKey = useMemo(() => conversations.map((c) => c.id).join(','), [conversations])
+
+  // 结构性变化（会话数量、切换话题）与"纯 viewSwitch/纯拖拽排序"必须走同一个 effect
+  // 判断分支、而不是两个各自独立的 effect：话题切换时 activeTopicId 和 orderKey 会
+  // 同时变化，若分成两个 effect，两者会在同一次 commit 里都触发，后一个读到的
+  // widthsRef.current 还是上一次渲染的旧值（ref 要等下一次渲染才会同步），会用
+  // 旧话题的 widths 覆盖掉前一个 effect 刚算好的新话题基线。
+  const hasBaselineRef = useRef(false)
+  const prevTopicIdRef = useRef(activeTopicId)
+  const prevCountRef = useRef(conversations.length)
 
   const ConversationItem = useMemo(
     () =>
@@ -81,13 +106,7 @@ const MainContent = () => {
           swiperRef?: React.RefObject<SwiperRef | null>
         }) => {
           const conversation = useAtomValue(convAtom)
-          return (
-            <MessageList
-              panelRef={containerRef}
-              swiperRef={swiperRef}
-              conversation={conversation}
-            />
-          )
+          return <MessageList swiperRef={swiperRef} conversation={conversation} />
         }
       ),
     []
@@ -119,29 +138,70 @@ const MainContent = () => {
     return Array.from({ length: count }, () => Math.trunc(available / count))
   }, [conversations, widths, fallbackWidth, isMobile, swiperSlideW, isShowSideBar, sideBarWidth])
 
-  // 均分各消息列表宽度
+  // 视图切换覆盖：只覆盖参与会话的 width，非参与会话恢复为各自 orignalWidth，
+  // 绝不重算均分基线——避免清空与本次操作无关的会话的手动自定义宽度。
+  // 由"viewSwitch/会话顺序变化"（点击/拖拽排序）和"均分基线重算后需要重新叠加"两类场景触发；
+  // 后一种场景（见 averageListWidth）会把刚算好的新基线通过 baseWidths 显式传入——
+  // 不能依赖 widthsRef.current，那是上一次渲染时的旧值，此时还没被 setWidths 同步过来。
+  const applyViewSwitch = useCallback(
+    (baseWidths?: WidthItem[]) => {
+      if (!containerRef.current) return
+      const base = baseWidths ?? widthsRef.current
+
+      const ids = conversationsRef.current.map((c) => c.id)
+      const owner = viewSwitchRef.current
+      const ownerPresent = !!owner && ids.includes(owner.ownerId)
+      // 主控会话已不存在（被删/话题切走），或只剩1个会话：回归 normal，
+      // 避免残留状态在后续新增会话时"复活"
+      const effectiveOwner = owner && ownerPresent && ids.length > 1 ? owner : null
+      if (owner && !effectiveOwner) setViewSwitch(null)
+
+      const participants = effectiveOwner
+        ? getViewSwitchParticipants(ids, effectiveOwner.ownerId, effectiveOwner.level)
+        : []
+      const containerWidth = containerRef.current.offsetWidth
+      const nextWidths = computeViewSwitchWidths(
+        base,
+        participants,
+        containerWidth,
+        UI_CONSTANTS.chatMinWidth,
+        UI_CONSTANTS.resizeLineWidth
+      )
+      setWidths(nextWidths)
+
+      if (participants.length > 0) {
+        const offset = getViewSwitchScrollOffset(nextWidths, ids, participants, UI_CONSTANTS.resizeLineWidth)
+        // 用目标宽度直接算出的偏移量去滚动，不用 scrollIntoView 读取实时 DOM 几何——
+        // 切换瞬间会话正在走 framer-motion 的布局弹簧动画，几何是过渡态，算出来的
+        // 位置动画结束后会对不上。两帧 rAF 只是等 React 把 nextWidths 提交到 DOM
+        // （MessageList.tsx 的 loadMore 里也用同样的双 rAF 等一次状态更新落到 DOM），
+        // 和布局动画本身是否播完无关。
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollRowRef.current?.scrollTo({ left: offset, behavior: 'smooth' })
+          })
+        })
+      }
+    },
+    [setWidths, setViewSwitch]
+  )
+
+  // 均分各消息列表宽度：算好的新基线始终交给 applyViewSwitch 落地（非 viewSwitch 状态下，
+  // participants 为空，等价于原样应用基线），避免基线和视图切换覆盖各自独立调用 setWidths
   const averageListWidth = useCallback(() => {
     const cLength = conversationsRef.current.length
-    if (containerRef.current && cLength > 0) {
-      const newTotalWidth = containerRef.current.offsetWidth
-      const equalWidth = Math.trunc(
-        (newTotalWidth - UI_CONSTANTS.resizeLineWidth * cLength) / cLength
-      )
+    if (!containerRef.current || cLength === 0) return
 
-      setWidths(
-        conversationsRef.current.map((conv) => {
-          const width =
-            equalWidth < UI_CONSTANTS.chatMinWidth ? UI_CONSTANTS.chatMinWidth : equalWidth
+    const newTotalWidth = containerRef.current.offsetWidth
+    const equalWidth = Math.trunc((newTotalWidth - UI_CONSTANTS.resizeLineWidth * cLength) / cLength)
 
-          return {
-            id: conv.id,
-            width,
-            orignalWidth: width
-          }
-        })
-      )
-    }
-  }, [setWidths])
+    const baseline = conversationsRef.current.map((conv) => {
+      const width = equalWidth < UI_CONSTANTS.chatMinWidth ? UI_CONSTANTS.chatMinWidth : equalWidth
+      return { id: conv.id, width, orignalWidth: width }
+    })
+
+    applyViewSwitch(baseline)
+  }, [applyViewSwitch])
 
   // 拖动改变消息列表宽度
   const resizeListWidth = useCallback(
@@ -166,14 +226,20 @@ const MainContent = () => {
     })
   }, [activeIndex, isMobile, updateModelInfo, conversations.length])
 
-  // 监听是否展开会话列表
+  // 监听视图切换：禁用当前不在参与集合内的会话（非normal视图下，非参与会话既不可见也不可交互，
+  // EditorPanel 靠 modelInfo.disable 判断新消息该发给哪些会话，这里算错是功能性问题，不只是视觉问题）
   useEffect(() => {
     if (isMobile) return
 
-    conversationsRef.current.forEach((conv, index) => {
-      updateModelInfo(conv.id, { disable: expandedIndex !== -1 && index !== expandedIndex })
+    const ids = conversationsRef.current.map((c) => c.id)
+    const participants = viewSwitch
+      ? new Set(getViewSwitchParticipants(ids, viewSwitch.ownerId, viewSwitch.level))
+      : null
+
+    conversationsRef.current.forEach((conv) => {
+      updateModelInfo(conv.id, { disable: participants !== null && !participants.has(conv.id) })
     })
-  }, [expandedIndex, isMobile, updateModelInfo, conversations.length])
+  }, [viewSwitch, isMobile, updateModelInfo, orderKey])
 
   // 优化 swiper enable 判定
   useEffect(() => {
@@ -184,10 +250,31 @@ const MainContent = () => {
     return () => clearTimeout(timeoutId)
   }, [isShowSideBar])
 
-  // 结构性变化（会话数量、切换话题）：绘制前同步量好宽度，首帧即为终态
+  // 会话数量变化或切换话题：重算均分基线（首帧即为终态）；纯拖拽排序（数量、话题都
+  // 不变，只是 orderKey 变了）或 viewSwitch 状态变化：只重新计算参与会话的宽度覆盖，
+  // 不碰均分基线，不清空其他会话手动调整过的宽度。用 useLayoutEffect 保证"主控会话
+  // 已不存在→回归normal"这类重置在绘制前完成，不会闪一帧错误布局。
   useLayoutEffect(() => {
-    averageListWidth()
-  }, [conversations.length, activeTopicId, averageListWidth])
+    const isStructural =
+      !hasBaselineRef.current ||
+      prevTopicIdRef.current !== activeTopicId ||
+      prevCountRef.current !== conversations.length
+
+    hasBaselineRef.current = true
+    prevTopicIdRef.current = activeTopicId
+    prevCountRef.current = conversations.length
+
+    if (isStructural) {
+      averageListWidth()
+    } else {
+      applyViewSwitch()
+    }
+  }, [orderKey, activeTopicId, conversations.length, viewSwitch, averageListWidth, applyViewSwitch])
+
+  // 桌面态分屏激活时，若免刷新切到移动宽度，回归 normal，避免状态隐形挂起、切回桌面宽度时复现
+  useEffect(() => {
+    if (isMobile) setViewSwitch(null)
+  }, [isMobile, setViewSwitch])
 
   // 侧边栏有 225ms 宽度过渡，只有这类变化需要等过渡结束再量
   useEffect(() => {
@@ -293,10 +380,11 @@ const MainContent = () => {
           </Swiper>
         ) : (
           <Box
+            ref={scrollRowRef}
             className="none-scrollbar"
             sx={{
               overflowY: 'hidden',
-              overflowX: expandedIndex < 0 ? 'auto' : 'hidden',
+              overflowX: viewSwitch === null ? 'auto' : 'hidden',
               position: 'relative',
               flex: 'auto',
               display: 'flex',
@@ -342,6 +430,7 @@ const MainContent = () => {
                         channelsWidth={widths}
                         onResize={(width) => resizeListWidth(index, width)}
                         panelRef={containerRef}
+                        disabled={viewSwitch !== null}
                       />
                     </motion.div>
                   )
